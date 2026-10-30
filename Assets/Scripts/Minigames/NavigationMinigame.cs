@@ -36,6 +36,8 @@ public class NavigationMinigame : Minigame
         timeLimit = 25f;
     }
 
+    public override string SystemName => ShipZones.Navigation;
+
     protected override void CreateContent()
     {
         const float spacing = 90f;

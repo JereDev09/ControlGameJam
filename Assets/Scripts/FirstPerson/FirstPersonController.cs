@@ -59,6 +59,11 @@ public class FirstPersonController : MonoBehaviour
 
     private void Update()
     {
+        if (PauseMenu.IsPaused)
+        {
+            return;
+        }
+
         Look();
         Move();
     }

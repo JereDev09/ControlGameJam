@@ -44,6 +44,8 @@ public class CircuitMinigame : Minigame
         timeLimit = 40f;
     }
 
+    public override string SystemName => ShipZones.Circuits;
+
     protected override void CreateContent()
     {
         columns = 5;

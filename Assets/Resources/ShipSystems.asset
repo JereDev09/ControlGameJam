@@ -1,0 +1,121 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61fefa3f2fb3b2f4ea83ef659e96cf18, type: 3}
+  m_Name: ShipSystems
+  m_EditorClassIdentifier: Assembly-CSharp::ShipSystems
+  systems:
+  - name: Circuitos
+    lossPerSecond: 0.5
+    position: {x: -0.599, y: -0.48931003, z: 6.425}
+  - name: Electricidad
+    lossPerSecond: 0.5
+    position: {x: -3.26, y: -0.48931003, z: 6.67}
+  - name: Motor
+    lossPerSecond: 0.5
+    position: {x: -6.1, y: -0.48931003, z: 6.11}
+  - name: "Navegaci\xF3n"
+    lossPerSecond: 0.5
+    position: {x: -8.85, y: -0.48931003, z: 4.27}
+  - name: Sobrecarga
+    lossPerSecond: 0.5
+    position: {x: -9.96, y: -0.48931003, z: 1.55}
+  - name: "Presi\xF3n"
+    lossPerSecond: 0.5
+    position: {x: -9.26, y: -0.48931003, z: -1.26}
+  - name: Radar
+    lossPerSecond: 0.5
+    position: {x: -7.75, y: -0.48931003, z: -3.36}
+  - name: Piezas
+    lossPerSecond: 0.5
+    position: {x: -5.85, y: -0.48931003, z: -5.63}
+  autoMapArea: 1
+  mapMin: {x: -14.4295, y: -8.63}
+  mapMax: {x: 3.8704996, y: 9.669999}
+  firstFailureDelay: 5
+  maxFailuresAtOnce:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 2
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 5
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  secondsBetweenFailures:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 14
+      inSlope: 0
+      outSlope: -8
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 6
+      inSlope: -8
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  lossMultiplier:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 7
+      inSlope: 0
+      outSlope: 4
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 11
+      inSlope: 4
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  dangerThreshold: 30
+  pressureDamagePerSecond: 2
+  overloadExplosionDamage: 8
+  overloadExplosionInterval: {x: 12, y: 4}
+  zonesAtZeroToLose: 3
+  pilotingScene: MinijuegoPrincipal

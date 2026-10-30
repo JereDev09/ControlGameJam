@@ -1,9 +1,10 @@
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Falla eléctrica: conecta cada cable de la izquierda con el del mismo color de la derecha.
-// Clic en un cable de la izquierda y luego en su pareja. Si conectas un color equivocado, falla.
+// Falla eléctrica: arrastra cada cable de la izquierda hasta el del mismo color de la derecha.
+// Mientras arrastras, el cable se estira siguiendo el ratón. Si lo sueltas en un color equivocado, falla.
 public class ElectricalMinigame : Minigame
 {
     private static readonly Color[] WireColors =
@@ -15,21 +16,24 @@ public class ElectricalMinigame : Minigame
     [Tooltip("Hay tantos cables como botones en estas listas (máximo 6, uno por color)")]
     [SerializeField] private Button[] leftWires;
     [SerializeField] private Button[] rightWires;
-    [Tooltip("Imagen desactivada que se copia para dibujar cada cable conectado")]
+    [Tooltip("Imagen desactivada que se copia para dibujar cada cable")]
     [SerializeField] private Image lineTemplate;
 
     private int[] rightColors;    // qué color tiene cada cable de la derecha
     private bool[] leftConnected;
     private bool[] rightConnected;
-    private int selectedWire;     // cable de la izquierda seleccionado (-1 = ninguno)
     private int connectedCount;
-    private Tween selectedPulse;
+    private int draggedWire;      // cable de la izquierda que se está arrastrando (-1 = ninguno)
+    private Image draggedLine;
+    private Tween draggedPulse;
 
     private void Reset()
     {
         title = "Restablecer energía";
         timeLimit = 20f;
     }
+
+    public override string SystemName => ShipZones.Electricity;
 
     protected override void CreateContent()
     {
@@ -51,24 +55,14 @@ public class ElectricalMinigame : Minigame
             rightWires[i] = MinigameUI.CreateButton($"RightWire{i + 1}", Window, "", WireColors[i], new Vector2(350f, y), wireSize);
         }
 
-        CreateInstructions("Clic en un cable de la izquierda y luego en el del mismo color a la derecha");
-    }
-
-    protected override void SetupMinigame()
-    {
-        for (int i = 0; i < leftWires.Length; i++)
-        {
-            int index = i; // copia para usarla dentro del clic del botón
-            leftWires[i].onClick.AddListener(() => SelectWire(index));
-            rightWires[i].onClick.AddListener(() => ConnectTo(index));
-        }
+        CreateInstructions("Arrastra cada cable de la izquierda hasta el del mismo color");
     }
 
     protected override void StartMinigame()
     {
         int wireCount = leftWires.Length;
-        selectedWire = -1;
         connectedCount = 0;
+        draggedWire = -1;
         leftConnected = new bool[wireCount];
         rightConnected = new bool[wireCount];
 
@@ -94,65 +88,106 @@ public class ElectricalMinigame : Minigame
         wire.image.color = color;
     }
 
-    private void SelectWire(int wire)
+    protected override void UpdateMinigame()
     {
-        if (leftConnected[wire])
+        Pointer pointer = Pointer.current;
+        if (pointer == null)
         {
             return;
         }
 
-        StopSelectedPulse();
-        selectedWire = wire;
-        selectedPulse = MinigameFX.Pulse(leftWires[wire].transform, 1.2f, 0.35f);
-    }
+        Vector2 screenPosition = pointer.position.ReadValue();
 
-    private void StopSelectedPulse()
-    {
-        if (selectedWire < 0)
+        if (pointer.press.wasPressedThisFrame)
+        {
+            StartDrag(FindWire(leftWires, screenPosition));
+        }
+
+        if (draggedWire < 0)
         {
             return;
         }
 
-        selectedPulse.Kill();
-        leftWires[selectedWire].transform.localScale = Vector3.one;
+        // El cable se estira desde su enchufe hasta el ratón
+        MinigameUI.PlaceLine(draggedLine.rectTransform, GetPosition(leftWires[draggedWire]), ScreenToWindow(screenPosition));
+
+        if (pointer.press.wasReleasedThisFrame)
+        {
+            Drop(FindWire(rightWires, screenPosition));
+        }
     }
 
-    private void ConnectTo(int slot)
+    private void StartDrag(int wire)
     {
-        if (selectedWire < 0 || rightConnected[slot])
+        if (wire < 0 || leftConnected[wire])
         {
+            return;
+        }
+
+        draggedWire = wire;
+        draggedLine = Spawn(lineTemplate);
+        draggedLine.color = WireColors[wire];
+        draggedPulse = MinigameFX.Pulse(leftWires[wire].transform, 1.2f, 0.35f);
+    }
+
+    private void Drop(int slot)
+    {
+        int wire = draggedWire;
+        Image line = draggedLine;
+        draggedWire = -1;
+        draggedPulse.Kill();
+        leftWires[wire].transform.localScale = Vector3.one;
+
+        // Soltado fuera de un cable libre: el cable se recoge
+        if (slot < 0 || rightConnected[slot])
+        {
+            RectTransform rect = line.rectTransform;
+            rect.DOSizeDelta(new Vector2(0f, rect.sizeDelta.y), 0.15f).SetLink(line.gameObject)
+                .OnComplete(() => Destroy(line.gameObject));
             return;
         }
 
         Button rightWire = rightWires[slot];
-        if (rightColors[slot] != selectedWire)
+        MinigameUI.PlaceLine(line.rectTransform, GetPosition(leftWires[wire]), GetPosition(rightWire));
+
+        if (rightColors[slot] != wire)
         {
             MinigameFX.Shake((RectTransform)rightWire.transform);
             Fail();
             return;
         }
 
-        Vector2 from = GetPosition(leftWires[selectedWire]);
-        Vector2 to = GetPosition(rightWire);
-        Color color = WireColors[selectedWire];
-
-        Image line = Spawn(lineTemplate);
-        line.color = color;
-        MinigameUI.PlaceLine(line.rectTransform, from, to);
-        MinigameFX.GrowLine(line.rectTransform);
         MinigameFX.Punch(rightWire.transform);
-        MinigameFX.Burst(Window, to, color);
-
-        StopSelectedPulse();
-        leftConnected[selectedWire] = true;
+        MinigameFX.Burst(Window, GetPosition(rightWire), line.color);
+        leftConnected[wire] = true;
         rightConnected[slot] = true;
-        selectedWire = -1;
         connectedCount++;
 
         if (connectedCount == leftWires.Length)
         {
             Succeed();
         }
+    }
+
+    // Índice del cable que hay bajo el ratón (-1 si no hay ninguno)
+    private static int FindWire(Button[] wires, Vector2 screenPosition)
+    {
+        for (int i = 0; i < wires.Length; i++)
+        {
+            if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)wires[i].transform, screenPosition))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    // Pasa la posición del ratón en pantalla a una posición dentro de la ventana
+    private Vector2 ScreenToWindow(Vector2 screenPosition)
+    {
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(Window, screenPosition, null, out Vector2 localPosition);
+        return localPosition;
     }
 
     // Posición del botón dentro de la ventana (los cables deben ser hijos directos de Window)

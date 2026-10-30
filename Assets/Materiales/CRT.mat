@@ -120,7 +120,7 @@ Material:
     - _RGB_TimeScale: 1
     - _ReceiveShadows: 1
     - _SCALINEACTIVE: 1
-    - _ScanLineTime: 0
+    - _ScanLineTime: 7.31
     - _ScanlineCount: 100
     - _ScanlineIntensity: -2.14
     - _ScanlineTimeScale: 1

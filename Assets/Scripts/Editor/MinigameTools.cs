@@ -3,11 +3,11 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Botones del menú Tools para preparar los minijuegos y la nave.
+// Botones del menú Tools > Minijuegos.
 public static class MinigameTools
 {
-    private const string PrefabFolder = "Assets/Prefabs/Minigames";
-    private const string ParticleMaterialPath = "Packages/com.unity.render-pipelines.universal/Runtime/Materials/ParticlesUnlit.mat";
+    private const string MinigamePrefabFolder = "Assets/Prefabs/Minigames";
+    private const string UIPrefabFolder = "Assets/Prefabs/UI";
 
     // Para cada minijuego de la escena abierta: le crea la UI y las partículas (si no las tiene)
     // y lo guarda como prefab en Assets/Prefabs/Minigames
@@ -21,7 +21,7 @@ public static class MinigameTools
             return;
         }
 
-        CreatePrefabFolder();
+        CreateFolder(MinigamePrefabFolder);
         int converted = 0;
         int skipped = 0;
 
@@ -41,7 +41,7 @@ public static class MinigameTools
 
             AddParticles(minigame);
 
-            string path = AssetDatabase.GenerateUniqueAssetPath($"{PrefabFolder}/{minigame.name}.prefab");
+            string path = AssetDatabase.GenerateUniqueAssetPath($"{MinigamePrefabFolder}/{minigame.name}.prefab");
             PrefabUtility.SaveAsPrefabAssetAndConnect(minigame.gameObject, path, InteractionMode.UserAction);
             converted++;
         }
@@ -51,7 +51,7 @@ public static class MinigameTools
 
         EditorUtility.DisplayDialog("Minijuegos",
             $"Convertidos: {converted}\nYa eran prefabs: {skipped}\n\n" +
-            $"Los prefabs están en {PrefabFolder}. Para editar una ventana, abre el prefab y activa su MinigameCanvas.\n\n" +
+            $"Los prefabs están en {MinigamePrefabFolder}. Para editar una ventana, abre el prefab y activa su MinigameCanvas.\n\n" +
             "No olvides guardar la escena.", "Vale");
     }
 
@@ -97,46 +97,103 @@ public static class MinigameTools
         Debug.Log($"UI regenerada en {prefabPath}");
     }
 
-    // Añade el efecto de propulsión a todos los objetos de la escena que se llamen PivoteFuego...
-    [MenuItem("Tools/Nave/Añadir efecto a los fuegos (PivoteFuego...)")]
-    private static void SetupThrusterFlames()
+    // Crea el prefab del HUD de estabilidad (alerta, mapa y panel) o regenera su UI si ya existe,
+    // y lo añade a la escena abierta si no lo tiene. Úsalo en la escena de pilotar y en la de primera persona.
+    [MenuItem("Tools/Minijuegos/Crear o actualizar HUD de estabilidad")]
+    private static void CreateOrUpdateStabilityHUD()
     {
-        int added = 0;
-        foreach (Transform candidate in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        string path = $"{UIPrefabFolder}/StabilityHUD.prefab";
+
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
         {
-            if (candidate.name.StartsWith("PivoteFuego") && candidate.GetComponent<ThrusterFlame>() == null)
+            CreateFolder(UIPrefabFolder);
+            GameObject hudObject = new GameObject("StabilityHUD");
+            hudObject.AddComponent<StabilityHUD>().CreateUI(GetCircleSprite());
+            PrefabUtility.SaveAsPrefabAsset(hudObject, path);
+            Object.DestroyImmediate(hudObject);
+        }
+        else if (EditorUtility.DisplayDialog("HUD de estabilidad",
+                     "El prefab StabilityHUD ya existe. ¿Regenerar su UI para añadir lo nuevo? Se pierden los cambios que le hayas hecho a su UI.",
+                     "Regenerar", "No, solo añadirlo a la escena"))
+        {
+            // Se borra la UI vieja dentro del prefab y se crea de nuevo
+            GameObject prefabRoot = PrefabUtility.LoadPrefabContents(path);
+            for (int i = prefabRoot.transform.childCount - 1; i >= 0; i--)
             {
-                Undo.AddComponent<ThrusterFlame>(candidate.gameObject);
-                added++;
+                Object.DestroyImmediate(prefabRoot.transform.GetChild(i).gameObject);
             }
+
+            prefabRoot.GetComponent<StabilityHUD>().CreateUI(GetCircleSprite());
+            PrefabUtility.SaveAsPrefabAsset(prefabRoot, path);
+            PrefabUtility.UnloadPrefabContents(prefabRoot);
         }
 
-        EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-        EditorUtility.DisplayDialog("Nave",
-            added > 0 ? $"Añadido ThrusterFlame a {added} fuegos. No olvides guardar la escena." : "No encontré fuegos nuevos (objetos llamados PivoteFuego... sin ThrusterFlame).",
-            "Vale");
+        if (Object.FindFirstObjectByType<StabilityHUD>(FindObjectsInactive.Include) == null)
+        {
+            GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(path));
+            Undo.RegisterCreatedObjectUndo(instance, "Añadir HUD de estabilidad");
+            EditorSceneManager.MarkSceneDirty(instance.scene);
+        }
+
+        EditorUtility.DisplayDialog("HUD de estabilidad",
+            $"Listo. El HUD está en {path} y en la escena abierta.\n\n" +
+            "Haz lo mismo en la otra escena (pilotar / primera persona) y guarda las dos.", "Vale");
     }
 
-    // Añade el contador de distancia al pedido en el mismo objeto que la nave
-    [MenuItem("Tools/Nave/Añadir contador de distancia")]
-    private static void SetupDeliveryDistance()
+    // Para la escena de primera persona: luces que parpadean, vista borrosa, temblores...
+    [MenuItem("Tools/Minijuegos/Añadir efectos de averías (interior)")]
+    private static void CreateInteriorFailureEffects()
     {
-        ShipMovement ship = Object.FindFirstObjectByType<ShipMovement>();
-        if (ship == null)
+        if (Object.FindFirstObjectByType<InteriorFailureEffects>() != null)
         {
-            EditorUtility.DisplayDialog("Nave", "No hay ninguna nave (ShipMovement) en la escena abierta.", "Vale");
+            EditorUtility.DisplayDialog("Minijuegos", "Esta escena ya tiene InteriorFailureEffects.", "Vale");
             return;
         }
 
-        if (ship.GetComponent<DeliveryDistance>() != null)
-        {
-            EditorUtility.DisplayDialog("Nave", $"{ship.name} ya tiene el contador de distancia.", "Vale");
-            return;
-        }
+        GameObject effectsObject = new GameObject("InteriorFailureEffects");
+        effectsObject.AddComponent<InteriorFailureEffects>();
+        Undo.RegisterCreatedObjectUndo(effectsObject, "Añadir efectos de averías");
+        EditorSceneManager.MarkSceneDirty(effectsObject.scene);
+        EditorUtility.DisplayDialog("Minijuegos", "Añadido InteriorFailureEffects a la escena. No olvides guardar la escena.", "Vale");
+    }
 
-        Undo.AddComponent<DeliveryDistance>(ship.gameObject);
-        EditorSceneManager.MarkSceneDirty(ship.gameObject.scene);
-        EditorUtility.DisplayDialog("Nave", $"Añadido DeliveryDistance a {ship.name}. No olvides guardar la escena.", "Vale");
+    // Crea un cubo con la terminal de estabilidad (y su ventana) donde mira la vista de escena,
+    // y lo guarda como prefab. Puedes cambiarle el modelo después.
+    [MenuItem("Tools/Minijuegos/Crear terminal de estabilidad")]
+    private static void CreateStabilityTerminal()
+    {
+        GameObject terminalObject = CreatePlaceholderCube("StabilityTerminal");
+        terminalObject.AddComponent<StabilityTerminal>().CreateUI();
+
+        CreateFolder(UIPrefabFolder);
+        string path = AssetDatabase.GenerateUniqueAssetPath($"{UIPrefabFolder}/StabilityTerminal.prefab");
+        PrefabUtility.SaveAsPrefabAssetAndConnect(terminalObject, path, InteractionMode.UserAction);
+        MinigameUI.EnsureEventSystem();
+        EditorSceneManager.MarkSceneDirty(terminalObject.scene);
+
+        EditorUtility.DisplayDialog("Minijuegos",
+            $"Terminal creada (seleccionada en la escena) y guardada en {path}. Colócala donde quieras.\n\n" +
+            "No olvides guardar la escena.", "Vale");
+    }
+
+    // Círculo blanco que trae Unity (el mismo del tirador de los Slider)
+    private static Sprite GetCircleSprite()
+    {
+        return AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+    }
+
+    // Cubo de marcador de posición en el centro de la vista de escena
+    public static GameObject CreatePlaceholderCube(string name)
+    {
+        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        cube.name = name;
+
+        SceneView view = SceneView.lastActiveSceneView;
+        cube.transform.position = view != null ? view.pivot : Vector3.zero;
+
+        Undo.RegisterCreatedObjectUndo(cube, $"Crear {name}");
+        Selection.activeGameObject = cube;
+        return cube;
     }
 
     private static void RebuildUI(Minigame minigame)
@@ -151,104 +208,43 @@ public static class MinigameTools
         EditorUtility.SetDirty(minigame);
     }
 
-    private static void CreatePrefabFolder()
-    {
-        if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))
-        {
-            AssetDatabase.CreateFolder("Assets", "Prefabs");
-        }
-
-        if (!AssetDatabase.IsValidFolder(PrefabFolder))
-        {
-            AssetDatabase.CreateFolder("Assets/Prefabs", "Minigames");
-        }
-    }
-
     // Crea las partículas de éxito y fallo encima del objeto (si no las tiene ya)
     private static void AddParticles(Minigame minigame)
     {
         SerializedObject serializedMinigame = new SerializedObject(minigame);
         SerializedProperty success = serializedMinigame.FindProperty("successParticles");
         SerializedProperty fail = serializedMinigame.FindProperty("failParticles");
-        Vector3 top = GetTopOf(minigame.gameObject);
+
+        Bounds bounds = ParticleFactory.GetBounds(minigame.gameObject);
+        Vector3 top = new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
 
         if (success.objectReferenceValue == null)
         {
-            success.objectReferenceValue = CreateBurstParticles("SuccessParticles", minigame.transform, top,
-                new Color(0.3f, 1f, 0.5f), new Color(0.4f, 0.9f, 1f), -0.2f);
+            success.objectReferenceValue = ParticleFactory.CreateBurst("SuccessParticles", minigame.transform, top, 40,
+                new Vector2(0.5f, 1f), new Vector2(2f, 5f), new Vector2(0.05f, 0.15f),
+                new Color(0.3f, 1f, 0.5f), new Color(0.4f, 0.9f, 1f), -0.2f, 0.2f, 0f);
         }
 
         if (fail.objectReferenceValue == null)
         {
-            fail.objectReferenceValue = CreateBurstParticles("FailParticles", minigame.transform, top,
-                new Color(1f, 0.6f, 0.1f), new Color(1f, 0.15f, 0.1f), 1f);
+            fail.objectReferenceValue = ParticleFactory.CreateBurst("FailParticles", minigame.transform, top, 40,
+                new Vector2(0.5f, 1f), new Vector2(2f, 5f), new Vector2(0.05f, 0.15f),
+                new Color(1f, 0.6f, 0.1f), new Color(1f, 0.15f, 0.1f), 1f, 0.2f, 0f);
         }
 
         serializedMinigame.ApplyModifiedPropertiesWithoutUndo();
     }
 
-    // Una explosión de chispas que se apagan. gravity < 0 hace que suban, > 0 que caigan.
-    private static ParticleSystem CreateBurstParticles(string name, Transform parent, Vector3 position, Color colorA, Color colorB, float gravity)
+    // Crea una carpeta (y las de encima) si no existe, por ejemplo "Assets/Prefabs/UI"
+    public static void CreateFolder(string path)
     {
-        GameObject particlesObject = new GameObject(name);
-        particlesObject.transform.SetParent(parent, false);
-        particlesObject.transform.position = position;
-
-        ParticleSystem particles = particlesObject.AddComponent<ParticleSystem>();
-        particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-
-        ParticleSystem.MainModule main = particles.main;
-        main.playOnAwake = false;
-        main.loop = false;
-        main.duration = 1f;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 1f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 5f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.15f);
-        main.startColor = new ParticleSystem.MinMaxGradient(colorA, colorB);
-        main.gravityModifier = gravity;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.scalingMode = ParticleSystemScalingMode.Shape;
-
-        ParticleSystem.EmissionModule emission = particles.emission;
-        emission.rateOverTime = 0f;
-        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 40) });
-
-        ParticleSystem.ShapeModule shape = particles.shape;
-        shape.shapeType = ParticleSystemShapeType.Sphere;
-        shape.radius = 0.2f;
-
-        Gradient fadeOut = new Gradient();
-        fadeOut.SetKeys(
-            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-            new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(0f, 1f) });
-        ParticleSystem.ColorOverLifetimeModule colorOverLifetime = particles.colorOverLifetime;
-        colorOverLifetime.enabled = true;
-        colorOverLifetime.color = fadeOut;
-
-        ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = particles.sizeOverLifetime;
-        sizeOverLifetime.enabled = true;
-        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
-
-        Material material = AssetDatabase.LoadAssetAtPath<Material>(ParticleMaterialPath);
-        if (material == null)
+        if (AssetDatabase.IsValidFolder(path))
         {
-            Debug.LogWarning($"No encontré el material de partículas de URP ({ParticleMaterialPath}). Asígnale uno a {name}.", particlesObject);
+            return;
         }
 
-        particlesObject.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
-        return particles;
-    }
-
-    // Punto más alto del objeto (según su Renderer), para que las partículas salgan de arriba
-    private static Vector3 GetTopOf(GameObject target)
-    {
-        Renderer renderer = target.GetComponentInChildren<Renderer>();
-        if (renderer == null)
-        {
-            return target.transform.position + Vector3.up * 0.5f;
-        }
-
-        Bounds bounds = renderer.bounds;
-        return new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+        string parent = System.IO.Path.GetDirectoryName(path).Replace('\\', '/');
+        CreateFolder(parent);
+        AssetDatabase.CreateFolder(parent, System.IO.Path.GetFileName(path));
     }
 }

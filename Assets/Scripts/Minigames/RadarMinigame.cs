@@ -32,6 +32,8 @@ public class RadarMinigame : Minigame
         timeLimit = 25f;
     }
 
+    public override string SystemName => ShipZones.Radar;
+
     protected override void CreateContent()
     {
         screen = MinigameUI.CreateImage("Screen", Window, new Color(0.05f, 0.15f, 0.08f), new Vector2(0f, 120f), new Vector2(720f, 220f));

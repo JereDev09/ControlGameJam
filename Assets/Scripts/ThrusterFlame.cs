@@ -1,8 +1,9 @@
 using UnityEngine;
 
 // Fuego de un propulsor: escala el pivote en Z con ruido para que parezca que está propulsando.
-// Además se alarga al acelerar (Sprint), da un fogonazo al esquivar, brilla con el ruido
-// y se apaga si la nave se destruye. Va en cada PivoteFuego (Tools > Nave).
+// Su largo sigue a la velocidad de la nave (ShipMovement.TravelSpeed): más largo al acelerar,
+// más corto si la nave va frenada y apagado si se destruye. Cuando el motor averiado da un
+// tirón, se apaga de golpe y chisporrotea. Va en cada PivoteFuego (Tools > Nave).
 public class ThrusterFlame : MonoBehaviour
 {
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
@@ -18,9 +19,9 @@ public class ThrusterFlame : MonoBehaviour
     [SerializeField, Range(0f, 0.5f)] private float widthNoise = 0.08f;
 
     [Header("Reacción a la nave")]
-    [SerializeField] private float boostLength = 1.6f;
-    [SerializeField] private float dodgeLength = 2.2f;
     [SerializeField] private float responseSpeed = 10f;
+    [Tooltip("Lo rápido que se apaga el fuego cuando el motor da un tirón")]
+    [SerializeField] private float stallResponseSpeed = 30f;
 
     [Header("Brillo (emisión del material)")]
     [Tooltip("Si se deja vacío, usa el Renderer de los hijos")]
@@ -58,7 +59,9 @@ public class ThrusterFlame : MonoBehaviour
     private void Update()
     {
         // Suaviza los cambios de potencia para que el fuego no salte de golpe
-        power = Mathf.Lerp(power, GetTargetPower(), responseSpeed * Time.deltaTime);
+        // (salvo cuando el motor se cala: entonces se apaga casi al instante)
+        bool stalled = ship != null && ship.EngineStalled;
+        power = Mathf.Lerp(power, GetTargetPower(), (stalled ? stallResponseSpeed : responseSpeed) * Time.deltaTime);
 
         // PerlinNoise da un valor suave entre 0 y 1 que cambia con el tiempo; lo pasamos a -1..1
         float lengthWave = Mathf.PerlinNoise(Time.time * noiseSpeed, noiseSeed) * 2f - 1f;
@@ -89,11 +92,12 @@ public class ThrusterFlame : MonoBehaviour
             return 0f;
         }
 
-        if (ship.IsDodging)
+        // Motor calado: el fuego se apaga y a ratos chisporrotea, como intentando arrancar
+        if (ship.EngineStalled)
         {
-            return dodgeLength;
+            return Random.value < 0.08f ? 0.6f : 0f;
         }
 
-        return ship.IsBoosting ? boostLength : 1f;
+        return ship.TravelSpeed;
     }
 }

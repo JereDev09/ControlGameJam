@@ -35,6 +35,8 @@ public class EngineMinigame : Minigame
         title = "Reparar motor";
     }
 
+    public override string SystemName => ShipZones.Engine;
+
     protected override void CreateContent()
     {
         MinigameUI.CreateText("TemperatureLabel", Window, "TEMPERATURA", 26, new Vector2(0f, 185f), new Vector2(400f, 40f));

@@ -1,4 +1,6 @@
+using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 public class ShipMovement : MonoBehaviour
@@ -9,13 +11,6 @@ public class ShipMovement : MonoBehaviour
     [SerializeField] private float boostMultiplier = 1.8f;
     [SerializeField] private int maxHealth = 100;
 
-    [Header("Dodge")]
-    [SerializeField, Min(0.05f)] private float doubleTapWindow = 0.3f;
-    [SerializeField, Min(0.1f)] private float dodgeSpeed = 24f;
-    [SerializeField, Min(0.05f)] private float dodgeDuration = 0.18f;
-
-    private int currentHealth;
-
     [Header("Visual")]
     [SerializeField] private float maxBankAngle = 25f;
     [SerializeField] private float bankSmoothTime = 0.15f;
@@ -24,17 +19,21 @@ public class ShipMovement : MonoBehaviour
     [SerializeField] private Camera movementCamera;
     [SerializeField, Range(0f, 0.25f)] private float screenPadding = 0.08f;
 
+    [Header("Velocidad de viaje")]
+    [Tooltip("1 = velocidad normal. Los fallos de la nave la podrán bajar (0.5 = mitad). Mueve la barra del viaje y el fuego")]
+    [SerializeField, Range(0f, 2f)] private float speedMultiplier = 1f;
+
+    [Header("Explosión (la crea Tools > Nave)")]
+    [SerializeField] private ParticleSystem explosionParticles;
+    [SerializeField] private float cameraShakeStrength = 0.4f;
+    public UnityEvent onDestroyed;
+
     private Vector3 movementVelocity;
     private float currentBankAngle;
     private float bankVelocity;
     private Quaternion initialRotation;
     private GUIStyle healthTextStyle;
-    private bool isDestroyed;
-    private float lastLeftTapTime = -1f;
-    private float lastRightTapTime = -1f;
-    private float dodgeTimeRemaining;
-    private int dodgeDirection;
-    private float previousHorizontal;
+    private bool hasExploded;
 
     // Acciones definidas en Assets/InputSystem_Actions (mapa "Player")
     private InputAction moveAction;
@@ -42,13 +41,29 @@ public class ShipMovement : MonoBehaviour
 
     // Para que otros scripts (como los fuegos del propulsor) sepan qué hace la nave
     public bool IsBoosting { get; private set; }
-    public bool IsDodging => dodgeTimeRemaining > 0f;
-    public bool IsDestroyed => isDestroyed;
+
+    // La vida vive en ShipState para que se mantenga al cambiar de escena
+    public bool IsDestroyed => ShipState.IsDestroyed;
+
+    public float SpeedMultiplier
+    {
+        get => speedMultiplier;
+        set => speedMultiplier = Mathf.Max(0f, value);
+    }
+
+    // Velocidad de viaje actual: 0 si la nave está destruida y más alta al acelerar (Sprint)
+    public float TravelSpeed => IsDestroyed ? 0f : speedMultiplier * (IsBoosting ? boostMultiplier : 1f);
+
+    // Las averías los cambian (ShipFailureEffects): controles que no responden, daño extra por impacto
+    // y motor calado durante un tirón (los fuegos se apagan)
+    public bool ControlsJammed { get; set; }
+    public float DamageMultiplier { get; set; } = 1f;
+    public bool EngineStalled { get; set; }
 
     private void Awake()
     {
         initialRotation = transform.rotation;
-        currentHealth = maxHealth;
+        ShipState.MaxHealth = maxHealth;
 
         if (movementCamera == null)
         {
@@ -59,25 +74,36 @@ public class ShipMovement : MonoBehaviour
         sprintAction = InputSystem.actions.FindAction("Sprint");
     }
 
+    // Si se desactiva el control (por ejemplo durante las animaciones de cámara), deja de acelerar
+    private void OnDisable()
+    {
+        IsBoosting = false;
+    }
+
     private void Update()
     {
-        if (isDestroyed)
+        // La nave puede destruirse por un asteroide o por las averías (desde cualquier escena)
+        if (IsDestroyed)
+        {
+            if (!hasExploded)
+            {
+                Explode();
+            }
+
+            return;
+        }
+
+        if (PauseMenu.IsPaused)
         {
             return;
         }
 
-        Vector2 moveInput = moveAction.ReadValue<Vector2>();
+        // Con los controles atascados la nave no responde y sigue con la inercia que llevaba
+        Vector2 moveInput = ControlsJammed ? Vector2.zero : moveAction.ReadValue<Vector2>();
         float horizontal = moveInput.x;
         float vertical = moveInput.y;
 
-        // "Pulsado este frame" = la entrada horizontal acaba de cruzar la mitad hacia un lado
-        bool leftPressed = horizontal < -0.5f && previousHorizontal >= -0.5f;
-        bool rightPressed = horizontal > 0.5f && previousHorizontal <= 0.5f;
-        previousHorizontal = horizontal;
-        CheckForDoubleTap(leftPressed, ref lastLeftTapTime, -1);
-        CheckForDoubleTap(rightPressed, ref lastRightTapTime, 1);
-
-        IsBoosting = sprintAction.IsPressed();
+        IsBoosting = !ControlsJammed && sprintAction.IsPressed();
         float speed = moveSpeed * (IsBoosting ? boostMultiplier : 1f);
         float deltaTime = Time.deltaTime;
 
@@ -87,39 +113,13 @@ public class ShipMovement : MonoBehaviour
         Vector3 targetVelocity = inputDirection * speed;
 
         movementVelocity = Vector3.MoveTowards(movementVelocity, targetVelocity, acceleration * deltaTime);
-        Vector3 frameMovement = movementVelocity * deltaTime;
-        if (dodgeTimeRemaining > 0f)
-        {
-            float dodgeStep = Mathf.Min(deltaTime, dodgeTimeRemaining);
-            frameMovement += right * dodgeDirection * dodgeSpeed * dodgeStep;
-            dodgeTimeRemaining -= deltaTime;
-        }
-
-        transform.position += frameMovement;
+        transform.position += movementVelocity * deltaTime;
 
         currentBankAngle = Mathf.SmoothDamp(currentBankAngle, -horizontal * maxBankAngle, ref bankVelocity, bankSmoothTime);
         Vector3 bankAxis = movementCamera != null ? movementCamera.transform.forward : Vector3.forward;
         transform.rotation = Quaternion.AngleAxis(currentBankAngle, bankAxis) * initialRotation;
 
         KeepInsideScreen();
-    }
-
-    private void CheckForDoubleTap(bool pressed, ref float lastTapTime, int direction)
-    {
-        if (!pressed)
-        {
-            return;
-        }
-
-        if (Time.time - lastTapTime <= doubleTapWindow)
-        {
-            dodgeDirection = direction;
-            dodgeTimeRemaining = dodgeDuration;
-            lastTapTime = -1f;
-            return;
-        }
-
-        lastTapTime = Time.time;
     }
 
     private void KeepInsideScreen()
@@ -142,19 +142,47 @@ public class ShipMovement : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        if (damage <= 0 || currentHealth <= 0)
+        if (damage <= 0 || IsDestroyed)
         {
             return;
         }
 
-        currentHealth = Mathf.Max(0, currentHealth - damage);
-        Debug.LogWarning($"¡Impacto! Vida de la nave: {currentHealth}/{maxHealth}", this);
+        ShipState.Damage(damage * DamageMultiplier);
+        Debug.LogWarning($"¡Impacto! Vida de la nave: {Mathf.CeilToInt(ShipState.Health)}/{maxHealth}", this);
 
-        if (currentHealth == 0)
+        // Cuanto más daño hace el golpe (casco debilitado), más tiembla la cámara
+        if (movementCamera != null && !IsDestroyed)
         {
-            Debug.LogWarning("La nave se quedó sin vida.", this);
-            isDestroyed = true;
+            movementCamera.transform.DOComplete();
+            movementCamera.transform.DOShakePosition(0.25f, cameraShakeStrength * 0.4f * DamageMultiplier, 20).SetLink(movementCamera.gameObject);
         }
+    }
+
+    // Partículas de explosión, la nave desaparece y la cámara tiembla
+    private void Explode()
+    {
+        hasExploded = true;
+        Debug.LogWarning("La nave se quedó sin vida.", this);
+
+        if (explosionParticles != null)
+        {
+            explosionParticles.Play(true);
+        }
+
+        foreach (Renderer shipRenderer in GetComponentsInChildren<Renderer>())
+        {
+            if (!(shipRenderer is ParticleSystemRenderer))
+            {
+                shipRenderer.enabled = false;
+            }
+        }
+
+        if (movementCamera != null)
+        {
+            movementCamera.transform.DOShakePosition(0.6f, cameraShakeStrength, 20).SetLink(movementCamera.gameObject);
+        }
+
+        onDestroyed.Invoke();
     }
 
     private void OnGUI()
@@ -170,6 +198,7 @@ public class ShipMovement : MonoBehaviour
             };
         }
 
+        int currentHealth = Mathf.CeilToInt(ShipState.Health);
         float healthRatio = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
         Rect barRect = new Rect(16f, 16f, 220f, 28f);
         Color previousColor = GUI.color;

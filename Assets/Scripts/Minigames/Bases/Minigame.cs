@@ -31,6 +31,16 @@ public abstract class Minigame : MonoBehaviour, IInteractable
     public UnityEvent onSuccess;
     public UnityEvent onFail;
 
+    // La nave se va debilitando: cada minijuego es una zona de la nave. Cuando FailureDirector la
+    // avería, pierde estabilidad (también mientras pilotas) hasta que completas el minijuego.
+    // Para no usar un minijuego, desactiva su objeto o desmarca la casilla de este componente.
+    // Estos datos y la posición para el mapa se copian a Resources/ShipSystems al guardar la escena.
+    [Header("Estabilidad")]
+    [Tooltip("Cuánta estabilidad pierde por segundo (de 100) mientras está averiada. Lo multiplica la curva de dificultad")]
+    [SerializeField] private float stabilityLossPerSecond = 0.5f;
+    [Tooltip("Cuánta estabilidad pierde si fallas el minijuego")]
+    [SerializeField] private float failPenalty = 10f;
+
     [Header("UI base (la crea la herramienta)")]
     [SerializeField] private GameObject uiRoot;
     [SerializeField] private Image backdrop;
@@ -55,9 +65,19 @@ public abstract class Minigame : MonoBehaviour, IInteractable
     private bool isOpen;
     private bool isPlaying;
 
-    public string Prompt => title;
+    public string Prompt => HasPower ? title : $"{title} (sin energía)";
     public bool IsOpen => isOpen;
+
+    // Sin electricidad las demás terminales no funcionan (la de electricidad sí, para poder repararla)
+    private bool HasPower => SystemName == ShipZones.Electricity || ShipState.HasPower;
     public GameObject UIRoot => uiRoot;
+
+    // De 0 a 100. La guarda ShipState para que siga bajando aunque cambies de escena.
+    public float Stability => ShipState.GetStability(SystemName);
+    public float StabilityLossPerSecond => stabilityLossPerSecond;
+
+    // Nombre corto de la zona de la nave, para el panel de estabilidad
+    public virtual string SystemName => title;
 
     protected RectTransform Window => window;
     protected float TimeLeft => timeLeft;
@@ -101,8 +121,16 @@ public abstract class Minigame : MonoBehaviour, IInteractable
             return;
         }
 
+        // Sin energía no se enciende: solo una pequeña sacudida
+        if (!HasPower)
+        {
+            transform.DOComplete();
+            transform.DOShakePosition(0.3f, 0.05f, 20).SetLink(gameObject);
+            return;
+        }
+
         player = interactor;
-        SetPlayerControl(false);
+        PlayerControl.Set(player, false);
         MinigameUI.EnsureEventSystem();
 
         ClearSpawned();
@@ -120,7 +148,7 @@ public abstract class Minigame : MonoBehaviour, IInteractable
 
     private void Update()
     {
-        if (!isPlaying)
+        if (!isPlaying || PauseMenu.IsPaused)
         {
             return;
         }
@@ -232,10 +260,12 @@ public abstract class Minigame : MonoBehaviour, IInteractable
 
         if (success)
         {
+            ShipState.SetStability(SystemName, 100f);
             onSuccess.Invoke();
         }
         else
         {
+            ShipState.SetStability(SystemName, Stability - failPenalty);
             onFail.Invoke();
         }
     }
@@ -272,7 +302,7 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         isOpen = false;
         isPlaying = false;
         windowGroup.interactable = false;
-        SetPlayerControl(true);
+        PlayerControl.Set(player, true);
 
         KillWindowTweens();
         backdrop.DOFade(0f, 0.2f);
@@ -324,26 +354,7 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         isOpen = false;
         isPlaying = false;
         uiRoot.SetActive(false);
-        SetPlayerControl(true);
-    }
-
-    // Mientras el minijuego está abierto el jugador no se mueve y el ratón queda libre
-    private void SetPlayerControl(bool canControl)
-    {
-        if (player == null)
-        {
-            return;
-        }
-
-        if (player.TryGetComponent(out FirstPersonController controller))
-        {
-            controller.enabled = canControl;
-        }
-
-        if (player.TryGetComponent(out PlayerInteractor interactor))
-        {
-            interactor.enabled = canControl;
-        }
+        PlayerControl.Set(player, true);
     }
 
     // Solo la usa la herramienta del editor: crea el Canvas con la ventana base

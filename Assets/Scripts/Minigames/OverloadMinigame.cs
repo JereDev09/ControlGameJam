@@ -29,6 +29,8 @@ public class OverloadMinigame : Minigame
         title = "Detener sobrecarga";
     }
 
+    public override string SystemName => ShipZones.Overload;
+
     protected override void CreateContent()
     {
         const int buttonCount = 4;

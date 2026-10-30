@@ -38,6 +38,8 @@ public class RecoverPartsMinigame : Minigame
         timeLimit = 30f;
     }
 
+    public override string SystemName => ShipZones.Parts;
+
     protected override void CreateContent()
     {
         area = MinigameUI.CreateImage("Area", Window, new Color(0.03f, 0.03f, 0.08f), new Vector2(0f, 20f), new Vector2(850f, 420f)).rectTransform;

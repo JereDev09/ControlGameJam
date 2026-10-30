@@ -25,6 +25,11 @@ public class PlayerInteractor : MonoBehaviour
 
     private void Update()
     {
+        if (PauseMenu.IsPaused)
+        {
+            return;
+        }
+
         currentTarget = FindTarget();
 
         if (currentTarget != null && interactAction.WasPressedThisFrame())
@@ -40,7 +45,15 @@ public class PlayerInteractor : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactLayers, QueryTriggerInteraction.Ignore))
         {
             // InParent: así el script puede estar en el padre aunque el collider esté en un hijo
-            return hit.collider.GetComponentInParent<IInteractable>();
+            IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
+
+            // Un script con la casilla del componente desmarcada no se puede usar
+            if (interactable is Behaviour behaviour && !behaviour.enabled)
+            {
+                return null;
+            }
+
+            return interactable;
         }
 
         return null;
