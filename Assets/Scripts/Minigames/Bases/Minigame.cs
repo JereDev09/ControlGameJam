@@ -253,7 +253,8 @@ public abstract class Minigame : MonoBehaviour, IInteractable
 
         Debug.Log($"{title}: {(success ? "completado" : "fallado")}", this);
 
-        yield return new WaitForSeconds(resultDuration);
+        float visibleDuration = success ? Mathf.Min(resultDuration, 0.6f) : resultDuration;
+        yield return new WaitForSeconds(visibleDuration);
 
         CloseWindow();
         PlayWorldFeedback(success);

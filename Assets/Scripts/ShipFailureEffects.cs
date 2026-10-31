@@ -6,7 +6,7 @@ using UnityEngine.UI;
 // - Motor: tirones; la nave pierde casi toda la velocidad a golpes y los fuegos se apagan.
 // - Circuitos: los controles dejan de responder a ratos y saltan chispas de la nave.
 // - Piezas: los asteroides hacen hasta el doble de daño y la nave echa humo.
-// - Electricidad: la pantalla se va a negro a ratos.
+// - Electricidad: la pantalla se oscurece levemente a ratos.
 // - Radar / Navegación: la barra del viaje tiembla y se desvanece (rumbo perdido).
 // - Sobrecarga: cada explosión interna se nota con chispas y un temblor.
 // Son progresivos: suaves al bajar del umbral de peligro y máximos al llegar a 0%.
@@ -26,6 +26,7 @@ public class ShipFailureEffects : MonoBehaviour
     [Tooltip("Velocidad de la nave durante un tirón del motor (1 = normal)")]
     [SerializeField, Range(0f, 1f)] private float stallSpeed = 0.15f;
     [SerializeField] private float shakeStrength = 0.3f;
+    [SerializeField, Range(0f, 0.3f)] private float blackoutMaxAlpha = 0.16f;
 
     private float baseSpeedMultiplier;
     private float stallTimer;
@@ -33,6 +34,7 @@ public class ShipFailureEffects : MonoBehaviour
     private float jamTimer;
     private float jamRemaining;
     private float blackoutRemaining;
+    private float blackoutAlpha;
     private Image blackout;
     private Tween shake;
 
@@ -69,7 +71,9 @@ public class ShipFailureEffects : MonoBehaviour
         {
             ship.ControlsJammed = false;
             ship.EngineStalled = false;
+            blackoutAlpha = 0f;
             blackout.enabled = false;
+            blackout.color = new Color(0f, 0f, 0f, 0f);
             SetEmission(sparks, 0f);
             SetEmission(smoke, 0f);
             return;
@@ -145,17 +149,20 @@ public class ShipFailureEffects : MonoBehaviour
         SetEmission(smoke, severity * 12f);
     }
 
-    // Electricidad: la pantalla se va a negro a ratos, más a menudo cuanto peor está
+    // Electricidad: la imagen se oscurece brevemente y de forma sutil cuando hay una caída.
     private void UpdateElectricity(float severity)
     {
         blackoutRemaining -= Time.deltaTime;
 
-        if (severity > 0f && blackoutRemaining <= 0f && Random.value < severity * 0.8f * Time.deltaTime)
+        if (severity > 0f && blackoutRemaining <= 0f && Random.value < severity * 0.5f * Time.deltaTime)
         {
-            blackoutRemaining = Random.Range(0.05f, 0.25f) * (0.5f + severity);
+            blackoutRemaining = Random.Range(0.1f, 0.2f) * (0.5f + severity);
         }
 
-        blackout.enabled = blackoutRemaining > 0f;
+        float targetAlpha = blackoutRemaining > 0f ? blackoutMaxAlpha * severity : 0f;
+        blackoutAlpha = Mathf.MoveTowards(blackoutAlpha, targetAlpha, Time.deltaTime * 2f);
+        blackout.color = new Color(0f, 0f, 0f, blackoutAlpha);
+        blackout.enabled = blackoutAlpha > 0.005f;
     }
 
     // Sobrecarga: cada explosión interna se nota con chispas y un temblor fuerte
@@ -192,13 +199,13 @@ public class ShipFailureEffects : MonoBehaviour
         emission.rateOverTimeMultiplier = rate;
     }
 
-    // Imagen negra a pantalla completa para los apagones (por encima del HUD)
+    // Oscurecimiento sutil bajo el HUD para que el aviso siga siendo legible.
     private void CreateBlackout()
     {
         Canvas canvas = MinigameUI.CreateCanvas("BlackoutCanvas", transform);
-        canvas.sortingOrder = 60;
+        canvas.sortingOrder = 49;
 
-        blackout = MinigameUI.CreateImage("Blackout", canvas.transform, new Color(0f, 0f, 0f, 0.92f), Vector2.zero, Vector2.zero);
+        blackout = MinigameUI.CreateImage("Blackout", canvas.transform, new Color(0f, 0f, 0f, 0f), Vector2.zero, Vector2.zero);
         MinigameUI.Stretch(blackout.rectTransform);
         blackout.raycastTarget = false;
         blackout.enabled = false;

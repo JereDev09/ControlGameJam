@@ -12,7 +12,7 @@ public class PilotingTransition : MonoBehaviour
     [SerializeField] private string interiorScene = "TestZonePlayer";
     [Tooltip("Cuánto se acerca la cámara a la nave (0 = nada, 1 = hasta la nave)")]
     [SerializeField, Range(0f, 1f)] private float closeUp = 0.75f;
-    [SerializeField] private float zoomDuration = 1.2f;
+    [SerializeField] private float zoomDuration = 0.65f;
 
     [Header("Referencias (si se dejan vacías se buscan solas)")]
     [SerializeField] private ShipMovement ship;
@@ -74,7 +74,7 @@ public class PilotingTransition : MonoBehaviour
     {
         SetPiloting(false);
         shipCamera.transform.DOMove(GetCloseUpPosition(), zoomDuration).SetEase(Ease.InCubic).SetLink(gameObject);
-        SceneTransition.Load(interiorScene, zoomDuration);
+        SceneTransition.Load(interiorScene, zoomDuration, zoomDuration * 0.4f);
     }
 
     // Mientras la cámara se mueve, la nave no se controla y no salen asteroides

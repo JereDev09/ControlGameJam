@@ -1,5 +1,6 @@
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // Sistema de navegación: traza la ruta uniendo puntos vecinos desde la nave (verde) hasta
@@ -29,6 +30,7 @@ public class NavigationMinigame : Minigame
     private int fuel;
     private Color fuelColor;
     private Tween destinationPulse;
+    private bool isDraggingRoute;
 
     private void Reset()
     {
@@ -62,7 +64,7 @@ public class NavigationMinigame : Minigame
 
         fuelText = MinigameUI.CreateText("FuelText", Window, "Combustible: 8", 26, new Vector2(-370f, 60f), new Vector2(220f, 40f));
         MinigameUI.CreateText("Legend", Window, "Verde: nave\nAzul: destino\nRojo: asteroide", 22, new Vector2(370f, 60f), new Vector2(220f, 100f));
-        CreateInstructions("Clic en puntos vecinos para trazar la ruta hasta el destino");
+        CreateInstructions("Haz clic o desliza por puntos vecinos hasta el destino");
     }
 
     protected override void SetupMinigame()
@@ -78,6 +80,7 @@ public class NavigationMinigame : Minigame
 
     protected override void StartMinigame()
     {
+        isDraggingRoute = false;
         isAsteroid = new bool[gridSize, gridSize];
         current = Vector2Int.zero;
         destination = new Vector2Int(gridSize - 1, gridSize - 1);
@@ -114,6 +117,54 @@ public class NavigationMinigame : Minigame
         destinationPulse = MinigameFX.Pulse(GetPoint(destination).transform, 1.25f, 0.4f);
     }
 
+    protected override void UpdateMinigame()
+    {
+        Pointer pointer = Pointer.current;
+        if (pointer == null)
+        {
+            return;
+        }
+
+        if (pointer.press.wasPressedThisFrame)
+        {
+            isDraggingRoute = true;
+        }
+
+        if (!isDraggingRoute)
+        {
+            return;
+        }
+
+        int hoveredPoint = FindPoint(pointer.position.ReadValue());
+        if (hoveredPoint >= 0)
+        {
+            Vector2Int point = new Vector2Int(hoveredPoint % gridSize, hoveredPoint / gridSize);
+            Vector2Int difference = point - current;
+            if (point != current && Mathf.Abs(difference.x) + Mathf.Abs(difference.y) == 1)
+            {
+                MoveTo(point);
+            }
+        }
+
+        if (pointer.press.wasReleasedThisFrame)
+        {
+            isDraggingRoute = false;
+        }
+    }
+
+    private int FindPoint(Vector2 screenPosition)
+    {
+        for (int i = 0; i < points.Length; i++)
+        {
+            if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)points[i].transform, screenPosition))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     // Inventa una ruta que siempre funciona: desde el inicio, ir a la derecha o arriba al azar
     private bool[,] CreateSafeRoute()
     {
@@ -141,6 +192,11 @@ public class NavigationMinigame : Minigame
 
     private void MoveTo(Vector2Int point)
     {
+        if (point == current)
+        {
+            return;
+        }
+
         Button target = GetPoint(point);
 
         // Solo se puede ir a un punto vecino (arriba, abajo, izquierda o derecha)

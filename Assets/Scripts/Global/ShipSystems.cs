@@ -54,14 +54,14 @@ public class ShipSystems : ScriptableObject
     [Header("Tutorial (al empezar una partida)")]
     public bool tutorialEnabled = true;
     [Tooltip("Segundos pilotando antes de la primera avería (la electricidad). Hasta entonces no se puede entrar en la nave")]
-    public float tutorialFirstFailureDelay = 10f;
+    public float tutorialFirstFailureDelay = 14f;
     [Tooltip("Segundos pilotando entre una avería del tutorial y la siguiente")]
-    public float tutorialStepDelay = 8f;
+    public float tutorialStepDelay = 16f;
     [Tooltip("Estabilidad a la que baja de golpe cada avería del tutorial, para que se note su efecto. " +
              "Durante el tutorial no baja más ni hace daño a la nave")]
     [Range(0f, 100f)] public float tutorialBreakStability = 10f;
     [Tooltip("Cuántas zonas al azar se averían, una a una, después de la electricidad")]
-    public int tutorialExtraFailures = 2;
+    public int tutorialExtraFailures = 1;
     [Tooltip("Mientras pilotas con una avería. {zone} = nombre de la zona, {key} = tecla para entrar en la nave")]
     public string tutorialEnterMessage = "¡Avería en {zone}! Pulsa {key} para entrar en la nave y repararla";
     [Tooltip("Dentro de la nave, con la avería sin reparar. {zone} = nombre de la zona")]

@@ -1012,7 +1012,7 @@ MonoBehaviour:
   successParticles: {fileID: 3154934442250251448}
   failParticles: {fileID: 4640219141816376204}
   sequenceLength: 5
-  flashTime: 0.5
+  flashTime: 0.35
   buttons:
   - {fileID: 8812808528535698645}
   - {fileID: 7776623189087718945}

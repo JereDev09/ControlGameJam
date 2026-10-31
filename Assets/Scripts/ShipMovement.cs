@@ -32,7 +32,7 @@ public class ShipMovement : MonoBehaviour
     private float currentBankAngle;
     private float bankVelocity;
     private Quaternion initialRotation;
-    private GUIStyle healthTextStyle;
+    private ShipHealthBar healthBar;
     private bool hasExploded;
 
     // Acciones definidas en Assets/InputSystem_Actions (mapa "Player")
@@ -64,6 +64,8 @@ public class ShipMovement : MonoBehaviour
     {
         initialRotation = transform.rotation;
         ShipState.MaxHealth = maxHealth;
+        healthBar = new GameObject("ShipHealthBar").AddComponent<ShipHealthBar>();
+        healthBar.Initialize(maxHealth);
 
         if (movementCamera == null)
         {
@@ -149,6 +151,7 @@ public class ShipMovement : MonoBehaviour
 
         ShipState.Damage(damage * DamageMultiplier);
         Debug.LogWarning($"¡Impacto! Vida de la nave: {Mathf.CeilToInt(ShipState.Health)}/{maxHealth}", this);
+        healthBar.PlayDamageFeedback();
 
         // Cuanto más daño hace el golpe (casco debilitado), más tiembla la cámara
         if (movementCamera != null && !IsDestroyed)
@@ -185,30 +188,4 @@ public class ShipMovement : MonoBehaviour
         onDestroyed.Invoke();
     }
 
-    private void OnGUI()
-    {
-        if (healthTextStyle == null)
-        {
-            healthTextStyle = new GUIStyle(GUI.skin.label)
-            {
-                alignment = TextAnchor.MiddleCenter,
-                fontSize = 16,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = Color.white }
-            };
-        }
-
-        int currentHealth = Mathf.CeilToInt(ShipState.Health);
-        float healthRatio = maxHealth > 0 ? (float)currentHealth / maxHealth : 0f;
-        Rect barRect = new Rect(16f, 16f, 220f, 28f);
-        Color previousColor = GUI.color;
-
-        GUI.color = new Color(0.08f, 0.1f, 0.12f, 0.85f);
-        GUI.Box(barRect, GUIContent.none);
-        GUI.color = Color.Lerp(new Color(0.8f, 0.16f, 0.12f), new Color(0.2f, 0.72f, 0.32f), healthRatio);
-        GUI.Box(new Rect(19f, 19f, 214f * healthRatio, 22f), GUIContent.none);
-        GUI.color = Color.white;
-        GUI.Label(barRect, $"VIDA {currentHealth}/{maxHealth}", healthTextStyle);
-        GUI.color = previousColor;
-    }
 }

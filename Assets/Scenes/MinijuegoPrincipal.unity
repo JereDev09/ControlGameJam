@@ -15676,7 +15676,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PilotingTransition
   interiorScene: TestZonePlayer
   closeUp: 0.75
-  zoomDuration: 1.2
+  zoomDuration: 0.65
   ship: {fileID: 0}
   asteroidSpawner: {fileID: 0}
   shipCamera: {fileID: 0}
@@ -20760,7 +20760,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpeedLines
   ship: {fileID: 0}
   minSimulationSpeed: 0.2
-  responseSpeed: 4
+  responseSpeed: 7
+  boostEmissionMultiplier: 1.7
 --- !u!1 &1152764595
 GameObject:
   m_ObjectHideFlags: 0
@@ -20792,15 +20793,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AsteroidSpawner
   gameCamera: {fileID: 330585545}
   ship: {fileID: 804489413}
-  spawnInterval: 1.5
-  spawnDistance: 12
+  spawnInterval: 1.2
+  spawnIntervalAtDestination: 0.8
+  spawnDistance: 24
   screenPadding: 0.08
-  spawnSpread: 0.12
+  spawnSpread: 0.16
   sizeRange: {x: 0.8, y: 1.6}
   growDuration: 0.6
-  asteroidSpeed: 4.5
+  asteroidSpeed: 5
+  asteroidSpeedAtDestination: 6
+  boostAsteroidSpeedMultiplier: 1.6
   rotationSpeedRange: {x: 12, y: 40}
-  shipHitRadius: 1.2
+  shipHitRadius: 0.55
   damagePerHit: 25
 --- !u!4 &1152764597
 Transform:
