@@ -3,23 +3,26 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// Falla eléctrica: arrastra cada cable de la izquierda hasta el del mismo color de la derecha.
-// Mientras arrastras, el cable se estira siguiendo el ratón. Si lo sueltas en un color equivocado, falla.
+// Falla eléctrica: arrastra cada cable de la izquierda hasta su pareja de la derecha (el del mismo color).
+// Las parejas van por número: LeftWire1 con RightWire1, LeftWire2 con RightWire2...
+// Los cables no se tiñen (cada uno usa su sprite); en cada partida se desordena el sitio de los de la derecha.
+// Mientras arrastras, el cable se estira siguiendo el ratón. Si lo sueltas en el equivocado, falla.
 public class ElectricalMinigame : Minigame
 {
-    private static readonly Color[] WireColors =
+    [Tooltip("Color de la línea que se dibuja para cada pareja de cables (en el mismo orden). Ajústalo a tus sprites")]
+    [SerializeField] private Color[] lineColors =
     {
         Color.red, new Color(0.2f, 0.4f, 1f), Color.yellow, Color.green, Color.magenta, Color.cyan
     };
 
     [Header("UI")]
-    [Tooltip("Hay tantos cables como botones en estas listas (máximo 6, uno por color)")]
+    [Tooltip("Hay tantos cables como botones en estas listas. El cable N de la izquierda va con el N de la derecha")]
     [SerializeField] private Button[] leftWires;
     [SerializeField] private Button[] rightWires;
     [Tooltip("Imagen desactivada que se copia para dibujar cada cable")]
     [SerializeField] private Image lineTemplate;
 
-    private int[] rightColors;    // qué color tiene cada cable de la derecha
+    private Vector2[] rightPositions;   // sitios originales de los cables de la derecha
     private bool[] leftConnected;
     private bool[] rightConnected;
     private int connectedCount;
@@ -48,14 +51,25 @@ public class ElectricalMinigame : Minigame
 
         leftWires = new Button[wireCount];
         rightWires = new Button[wireCount];
+        // Los colores de los botones son solo de relleno, hasta que les pongas sus sprites
         for (int i = 0; i < wireCount; i++)
         {
             float y = 180f - i * (350f / (wireCount - 1));
-            leftWires[i] = MinigameUI.CreateButton($"LeftWire{i + 1}", Window, "", WireColors[i], new Vector2(-350f, y), wireSize);
-            rightWires[i] = MinigameUI.CreateButton($"RightWire{i + 1}", Window, "", WireColors[i], new Vector2(350f, y), wireSize);
+            leftWires[i] = MinigameUI.CreateButton($"LeftWire{i + 1}", Window, "", GetLineColor(i), new Vector2(-350f, y), wireSize);
+            rightWires[i] = MinigameUI.CreateButton($"RightWire{i + 1}", Window, "", GetLineColor(i), new Vector2(350f, y), wireSize);
         }
 
         CreateInstructions("Arrastra cada cable de la izquierda hasta el del mismo color");
+    }
+
+    protected override void SetupMinigame()
+    {
+        // Se guardan los sitios de los cables de la derecha para desordenarlos en cada partida
+        rightPositions = new Vector2[rightWires.Length];
+        for (int i = 0; i < rightWires.Length; i++)
+        {
+            rightPositions[i] = GetPosition(rightWires[i]);
+        }
     }
 
     protected override void StartMinigame()
@@ -66,26 +80,31 @@ public class ElectricalMinigame : Minigame
         leftConnected = new bool[wireCount];
         rightConnected = new bool[wireCount];
 
-        // A la derecha están los mismos colores, pero desordenados
-        rightColors = new int[wireCount];
+        // Los cables de la derecha se colocan en un orden distinto cada vez
+        int[] order = new int[wireCount];
         for (int i = 0; i < wireCount; i++)
         {
-            rightColors[i] = i;
+            order[i] = i;
         }
-        Shuffle(rightColors);
+        Shuffle(order);
 
         for (int i = 0; i < wireCount; i++)
         {
-            ResetWire(leftWires[i], WireColors[i]);
-            ResetWire(rightWires[i], WireColors[rightColors[i]]);
+            ResetWire(leftWires[i]);
+            ResetWire(rightWires[i]);
+            ((RectTransform)rightWires[i].transform).anchoredPosition = rightPositions[order[i]];
         }
     }
 
-    private void ResetWire(Button wire, Color color)
+    private static void ResetWire(Button wire)
     {
         wire.transform.DOKill(true);
         wire.transform.localScale = Vector3.one;
-        wire.image.color = color;
+    }
+
+    private Color GetLineColor(int wire)
+    {
+        return lineColors.Length > 0 ? lineColors[wire % lineColors.Length] : Color.white;
     }
 
     protected override void UpdateMinigame()
@@ -126,7 +145,7 @@ public class ElectricalMinigame : Minigame
 
         draggedWire = wire;
         draggedLine = Spawn(lineTemplate);
-        draggedLine.color = WireColors[wire];
+        draggedLine.color = GetLineColor(wire);
         draggedPulse = MinigameFX.Pulse(leftWires[wire].transform, 1.2f, 0.35f);
     }
 
@@ -150,7 +169,8 @@ public class ElectricalMinigame : Minigame
         Button rightWire = rightWires[slot];
         MinigameUI.PlaceLine(line.rectTransform, GetPosition(leftWires[wire]), GetPosition(rightWire));
 
-        if (rightColors[slot] != wire)
+        // Cada cable de la izquierda solo va con el de la derecha de su mismo número
+        if (slot != wire)
         {
             MinigameFX.Shake((RectTransform)rightWire.transform);
             Fail();

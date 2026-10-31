@@ -12,7 +12,10 @@ public class PilotingTransition : MonoBehaviour
     [SerializeField] private string interiorScene = "TestZonePlayer";
     [Tooltip("Cuánto se acerca la cámara a la nave (0 = nada, 1 = hasta la nave)")]
     [SerializeField, Range(0f, 1f)] private float closeUp = 0.75f;
+    [Tooltip("Segundos que tarda la cámara en acercarse a la nave al entrar")]
     [SerializeField] private float zoomDuration = 1.2f;
+    [Tooltip("Segundos que tarda la cámara en alejarse de la nave al volver a pilotar")]
+    [SerializeField] private float pullBackDuration = 1.8f;
 
     [Header("Referencias (si se dejan vacías se buscan solas)")]
     [SerializeField] private ShipMovement ship;
@@ -48,11 +51,12 @@ public class PilotingTransition : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // La cámara empieza cerca de la nave y se aleja hasta su sitio
+        // La cámara empieza cerca de la nave y se aleja suavemente hasta su sitio
+        // (dura más que el fundido de entrada, así se ve casi todo el movimiento)
         cameraPosition = shipCamera.transform.position;
         shipCamera.transform.position = GetCloseUpPosition();
         SetPiloting(false);
-        shipCamera.transform.DOMove(cameraPosition, zoomDuration).SetEase(Ease.InOutCubic).SetLink(gameObject)
+        shipCamera.transform.DOMove(cameraPosition, pullBackDuration).SetEase(Ease.InOutSine).SetLink(gameObject)
             .OnComplete(() => SetPiloting(true));
     }
 
@@ -69,12 +73,13 @@ public class PilotingTransition : MonoBehaviour
         }
     }
 
-    // La cámara se acerca a la nave mientras la pantalla se funde a negro, y se pasa a primera persona
+    // La cámara se acerca suavemente a la nave; a mitad de camino la pantalla empieza a fundirse
+    // a negro y, justo al llegar, se pasa a primera persona
     private void GoInside()
     {
         SetPiloting(false);
-        shipCamera.transform.DOMove(GetCloseUpPosition(), zoomDuration).SetEase(Ease.InCubic).SetLink(gameObject);
-        SceneTransition.Load(interiorScene, zoomDuration);
+        shipCamera.transform.DOMove(GetCloseUpPosition(), zoomDuration).SetEase(Ease.InOutSine).SetLink(gameObject);
+        SceneTransition.Load(interiorScene, zoomDuration * 0.6f, 0.8f, zoomDuration * 0.4f);
     }
 
     // Mientras la cámara se mueve, la nave no se controla y no salen asteroides

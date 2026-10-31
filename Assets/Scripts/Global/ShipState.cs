@@ -28,6 +28,12 @@ public static class ShipState
     public static float Health => health < 0f ? MaxHealth : health;
     public static bool IsDestroyed { get; private set; }
 
+    // Se ha llegado al destino: ya no hay averías (lo pone DeliveryDistance)
+    public static bool HasArrived { get; set; }
+
+    // Segundos que faltan para explotar por tener varias zonas críticas (-1 = no hay cuenta atrás)
+    public static float MeltdownTimeLeft { get; set; } = -1f;
+
     // Progreso del viaje: 0 = salida, 1 = destino
     public static float Progress => TotalDistance > 0f && Distance >= 0f ? 1f - Distance / TotalDistance : 0f;
 
@@ -69,6 +75,8 @@ public static class ShipState
         config = null;
         health = -1f;
         IsDestroyed = false;
+        HasArrived = false;
+        MeltdownTimeLeft = -1f;
         Distance = -1f;
         TotalDistance = -1f;
         FailureDirector.Remove();
@@ -86,6 +94,9 @@ public static class ShipState
         return system != null && system.isFailing;
     }
 
+    // Avisa cuando una zona se avería (el HUD enseña un aviso)
+    public static event System.Action<string> SystemBroke;
+
     // Avería una zona: empieza a perder estabilidad hasta que se repare
     public static void Break(string systemName)
     {
@@ -94,6 +105,7 @@ public static class ShipState
         {
             system.isFailing = true;
             system.failedAt = Time.time;
+            SystemBroke?.Invoke(systemName);
         }
     }
 

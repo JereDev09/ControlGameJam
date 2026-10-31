@@ -1,9 +1,7 @@
 using System.Collections.Generic;
-using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
-using UnityEngine.UI;
 
 // Lo que pasa con las averías en cualquier escena (se crea solo y sobrevive a los cambios de escena):
 // - Decide cuándo se avería cada zona según la curva de dificultad: al principio falla una sola
@@ -12,7 +10,8 @@ using UnityEngine.UI;
 //   Mientras dura el tutorial (ShipTutorial) no hay averías al azar.
 // - Presión: la nave pierde vida poco a poco.
 // - Sobrecarga: la imagen se distorsiona y hay explosiones internas que quitan vida.
-// - Derrota: si varias zonas llegan a 0% (o la vida a 0), la nave explota.
+// - Derrota: si varias zonas están críticas a la vez (tras una cuenta atrás) o la vida llega a 0,
+//   la nave explota: si estás dentro te saca a verlo y luego pasa a la escena de la derrota.
 // Los efectos de cada escena (tirones, chispas, apagones...) están en ShipFailureEffects
 // (pilotar) e InteriorFailureEffects (primera persona). Los ajustes, en Resources/ShipSystems.
 public class FailureDirector : MonoBehaviour
@@ -24,8 +23,7 @@ public class FailureDirector : MonoBehaviour
     private float nextFailureTimer;
     private float nextExplosionTimer;
     private float destroyedTimer;
-    private bool gameOverShown;
-    private bool returningToMenu;
+    private bool leavingAfterDestruction;
     private Volume distortionVolume;
     private VolumeProfile distortionProfile;
     private float crtBaseCurvature = -1f;
@@ -70,8 +68,8 @@ public class FailureDirector : MonoBehaviour
 
     private void Update()
     {
-        // En el menú principal no pasa nada
-        if (MainMenu.IsOpen)
+        // En el menú principal y al llegar al destino ya no pasa nada
+        if (MainMenu.IsOpen || ShipState.HasArrived)
         {
             distortionVolume.weight = 0f;
             RestoreCRT();
@@ -101,10 +99,20 @@ public class FailureDirector : MonoBehaviour
 
         // Las zonas averiadas pierden estabilidad, más rápido cuanto más avanzado está el viaje.
         // Si hay varias, solo la primera baja a velocidad normal (salvo muy cerca del destino).
-        // Durante el tutorial las averías las decide ShipTutorial y su estabilidad no baja más
+        // Durante el tutorial las averías las decide ShipTutorial: bajan deprisa (pero poco a poco)
+        // hasta el nivel del tutorial y ahí se quedan
         if (!ShipState.TutorialFinished)
         {
             nextFailureTimer = config.firstFailureDelay;
+            foreach (ShipState.SystemState system in ShipState.Systems)
+            {
+                if (system.isFailing && system.stability > config.tutorialBreakStability)
+                {
+                    float drop = config.tutorialDropSpeed * Time.deltaTime;
+                    system.stability = Mathf.Max(config.tutorialBreakStability, system.stability - drop);
+                }
+            }
+
             return;
         }
 
@@ -153,10 +161,7 @@ public class FailureDirector : MonoBehaviour
 
         if (working.Count > 0)
         {
-            // Al averiarse pierde de golpe un buen trozo de estabilidad, para que se note enseguida
-            ShipState.SystemState system = working[Random.Range(0, working.Count)];
-            ShipState.Break(system.name);
-            ShipState.SetStability(system.name, system.stability - ShipState.Config.failureInitialDrop);
+            ShipState.Break(working[Random.Range(0, working.Count)].name);
         }
     }
 
@@ -272,29 +277,45 @@ public class FailureDirector : MonoBehaviour
 
     // ---------- Derrota ----------
 
-    // Si demasiadas zonas llegan a 0% a la vez, la nave explota
+    // Si varias zonas están en estado crítico a la vez, empieza una cuenta atrás (el HUD la enseña).
+    // Si reparas alguna a tiempo se cancela; si no, la nave explota.
     private void CheckDefeat()
     {
-        int zonesAtZero = 0;
+        ShipSystems config = ShipState.Config;
+        int criticalZones = 0;
         foreach (ShipState.SystemState system in ShipState.Systems)
         {
-            if (system.stability <= 0f)
+            if (system.stability <= config.criticalStability)
             {
-                zonesAtZero++;
+                criticalZones++;
             }
         }
 
-        if (zonesAtZero >= ShipState.Config.zonesAtZeroToLose)
+        // Durante el tutorial no se puede perder así
+        if (!ShipState.TutorialFinished || criticalZones < config.criticalZonesToLose)
         {
+            ShipState.MeltdownTimeLeft = -1f;
+            return;
+        }
+
+        if (ShipState.MeltdownTimeLeft < 0f)
+        {
+            ShipState.MeltdownTimeLeft = config.meltdownSeconds;
+        }
+
+        ShipState.MeltdownTimeLeft -= Time.deltaTime;
+        if (ShipState.MeltdownTimeLeft <= 0f)
+        {
+            ShipState.MeltdownTimeLeft = -1f;
             ShipState.Destroy();
         }
     }
 
-    // Al perder: si estás dentro te lleva fuera a ver la explosión, sale "NAVE DESTRUIDA"
-    // y después vuelve al menú principal para empezar de nuevo
+    // Al perder: si estás dentro te lleva fuera a ver la explosión y después pasa a la escena
+    // de la derrota (que vuelve sola al menú principal)
     private void UpdateDestruction()
     {
-        if (returningToMenu || SceneTransition.IsTransitioning)
+        if (leavingAfterDestruction || SceneTransition.IsTransitioning)
         {
             return;
         }
@@ -305,36 +326,24 @@ public class FailureDirector : MonoBehaviour
             return;
         }
 
+        // Unos segundos para ver la explosión
         destroyedTimer += Time.deltaTime;
-        if (destroyedTimer >= 2f && !gameOverShown)
+        if (destroyedTimer >= 3.5f)
         {
-            gameOverShown = true;
-            ShowGameOver();
-        }
-
-        if (destroyedTimer >= 5f)
-        {
-            returningToMenu = true;
-            SceneTransition.Load(ShipState.Config.menuScene, 1.5f);
+            leavingAfterDestruction = true;
+            SceneTransition.Load(GetSceneOrMenu(ShipState.Config.gameOverScene), 1.5f);
         }
     }
 
-    // Texto grande en el centro. Se crea en la escena actual, así que desaparece al irse al menú.
-    private static void ShowGameOver()
+    // Si la escena no está en la lista de la build (por ejemplo, aún no se ha creado), se va al menú
+    public static string GetSceneOrMenu(string sceneName)
     {
-        GameObject gameOverObject = new GameObject("GameOver");
-        Canvas canvas = MinigameUI.CreateCanvas("GameOverCanvas", gameOverObject.transform);
-        canvas.sortingOrder = 80;
+        if (Application.CanStreamedLevelBeLoaded(sceneName))
+        {
+            return sceneName;
+        }
 
-        Text title = MinigameUI.CreateText("Title", canvas.transform, "NAVE DESTRUIDA", 96, new Vector2(0f, 40f), new Vector2(1600f, 140f));
-        title.color = new Color(1f, 0.25f, 0.2f);
-        title.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(4f, -4f);
-        MinigameUI.CreateText("Subtitle", canvas.transform, "El pedido no llegará a su destino...", 32, new Vector2(0f, -50f), new Vector2(1600f, 60f));
-
-        CanvasGroup group = canvas.gameObject.AddComponent<CanvasGroup>();
-        group.alpha = 0f;
-        group.DOFade(1f, 0.8f);
-        title.transform.localScale = Vector3.one * 1.4f;
-        title.transform.DOScale(1f, 0.8f).SetEase(Ease.OutCubic);
+        Debug.LogWarning($"La escena '{sceneName}' no está en la lista de escenas de la build. Se vuelve al menú.");
+        return ShipState.Config.menuScene;
     }
 }

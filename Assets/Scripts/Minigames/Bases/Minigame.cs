@@ -65,6 +65,9 @@ public abstract class Minigame : MonoBehaviour, IInteractable
     private bool isOpen;
     private bool isPlaying;
 
+    // El minijuego que hay abierto ahora mismo (para que Escape lo cierre antes de pausar)
+    private static Minigame openMinigame;
+
     public string Prompt => HasPower ? title : $"{title} (sin energía)";
     public bool IsOpen => isOpen;
 
@@ -141,6 +144,7 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         lastShownSecond = -1;
         isOpen = true;
         isPlaying = true;
+        openMinigame = this;
 
         PlayOpenAnimation();
         StartMinigame();
@@ -270,7 +274,20 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         }
     }
 
-    // Botón X: cierra sin completar ni fallar
+    // Lo usa el menú de pausa: si hay un minijuego abierto, Escape lo cierra en vez de pausar.
+    // Devuelve true si había uno (aunque esté enseñando el resultado y no se pueda cerrar aún).
+    public static bool CloseOpenMinigame()
+    {
+        if (openMinigame == null)
+        {
+            return false;
+        }
+
+        openMinigame.Cancel();
+        return true;
+    }
+
+    // Botón X (o Escape): cierra sin completar ni fallar
     private void Cancel()
     {
         if (!isPlaying)
@@ -292,22 +309,27 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         window.localScale = Vector3.one * 0.85f;
         backdrop.color = new Color(backdrop.color.r, backdrop.color.g, backdrop.color.b, 0f);
 
-        backdrop.DOFade(backdropAlpha, 0.25f);
-        windowGroup.DOFade(1f, 0.25f);
-        window.DOScale(1f, 0.35f).SetEase(Ease.OutBack);
+        backdrop.DOFade(backdropAlpha, 0.25f).SetLink(gameObject);
+        windowGroup.DOFade(1f, 0.25f).SetLink(gameObject);
+        window.DOScale(1f, 0.35f).SetEase(Ease.OutBack).SetLink(gameObject);
     }
 
     private void CloseWindow()
     {
         isOpen = false;
         isPlaying = false;
+        if (openMinigame == this)
+        {
+            openMinigame = null;
+        }
+
         windowGroup.interactable = false;
         PlayerControl.Set(player, true);
 
         KillWindowTweens();
-        backdrop.DOFade(0f, 0.2f);
-        windowGroup.DOFade(0f, 0.2f);
-        window.DOScale(0.85f, 0.2f).SetEase(Ease.InBack).OnComplete(() => uiRoot.SetActive(false));
+        backdrop.DOFade(0f, 0.2f).SetLink(gameObject);
+        windowGroup.DOFade(0f, 0.2f).SetLink(gameObject);
+        window.DOScale(0.85f, 0.2f).SetEase(Ease.InBack).SetLink(gameObject).OnComplete(() => uiRoot.SetActive(false));
     }
 
     private void KillWindowTweens()
@@ -353,6 +375,11 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         StopAllCoroutines();
         isOpen = false;
         isPlaying = false;
+        if (openMinigame == this)
+        {
+            openMinigame = null;
+        }
+
         uiRoot.SetActive(false);
         PlayerControl.Set(player, true);
     }

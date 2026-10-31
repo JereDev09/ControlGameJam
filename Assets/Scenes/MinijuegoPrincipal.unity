@@ -9866,7 +9866,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &287531149
 RectTransform:
   m_ObjectHideFlags: 0
@@ -15623,9 +15623,6 @@ MonoBehaviour:
   acceleration: 30
   boostMultiplier: 1.8
   maxHealth: 100
-  doubleTapWindow: 0.3
-  dodgeSpeed: 24
-  dodgeDuration: 0.18
   maxBankAngle: 25
   bankSmoothTime: 0.15
   movementCamera: {fileID: 330585545}
@@ -15654,8 +15651,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DeliveryDistance
   ship: {fileID: 0}
-  startDistance: 25000
-  kilometersPerSecond: 120
   onArrived:
     m_PersistentCalls:
       m_Calls: []
@@ -15774,7 +15769,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 899177489}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -15783,8 +15778,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 34, y: 16}
+  m_AnchoredPosition: {x: 0, y: 0.0001}
+  m_SizeDelta: {x: 110.2969, y: 51.9044}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &899177491
 MonoBehaviour:
@@ -15806,9 +15801,9 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 24da504465e933f46bad876b9375c07f, type: 3}
   m_Type: 0
-  m_PreserveAspect: 0
+  m_PreserveAspect: 1
   m_FillCenter: 1
   m_FillMethod: 4
   m_FillAmount: 1
@@ -30934,8 +30929,8 @@ MonoBehaviour:
   noiseSpeed: 15
   lengthNoise: 0.3
   widthNoise: 0.08
-  dodgeLength: 2.2
   responseSpeed: 10
+  stallResponseSpeed: 30
   flameRenderer: {fileID: 0}
   glowNoise: 0.35
 --- !u!1 &2119741724
@@ -30987,8 +30982,8 @@ MonoBehaviour:
   noiseSpeed: 15
   lengthNoise: 0.3
   widthNoise: 0.08
-  dodgeLength: 2.2
   responseSpeed: 10
+  stallResponseSpeed: 30
   flameRenderer: {fileID: 0}
   glowNoise: 0.35
 --- !u!1 &2128992771
@@ -31040,8 +31035,8 @@ MonoBehaviour:
   noiseSpeed: 15
   lengthNoise: 0.3
   widthNoise: 0.08
-  dodgeLength: 2.2
   responseSpeed: 10
+  stallResponseSpeed: 30
   flameRenderer: {fileID: 0}
   glowNoise: 0.35
 --- !u!1660057539 &9223372036854775807

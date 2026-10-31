@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 // Menú de pausa (tecla Escape): para el juego y deja continuar, volver al menú principal o salir.
 // Va en la escena PersistentGameplay, que siempre está cargada, así funciona en todas las escenas
-// de juego. En el menú principal y durante los cambios de escena no se abre.
+// de juego. En el menú principal, en el final, al perder y durante los cambios de escena no se abre.
 // La UI la crea Tools > Menú > Crear menú de pausa; luego se edita como UI normal.
 public class PauseMenu : MonoBehaviour
 {
@@ -45,8 +45,16 @@ public class PauseMenu : MonoBehaviour
         if (IsPaused)
         {
             Resume();
+            return;
         }
-        else if (!MainMenu.IsOpen && !SceneTransition.IsTransitioning)
+
+        // Si hay un minijuego o la terminal abiertos, Escape primero los cierra (sin pausar)
+        if (Minigame.CloseOpenMinigame() || StabilityTerminal.CloseOpenTerminal())
+        {
+            return;
+        }
+
+        if (!MainMenu.IsOpen && !ShipState.HasArrived && !ShipState.IsDestroyed && !SceneTransition.IsTransitioning)
         {
             Pause();
         }

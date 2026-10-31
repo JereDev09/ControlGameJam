@@ -40,7 +40,9 @@ MonoBehaviour:
   autoMapArea: 1
   mapMin: {x: -14.4295, y: -8.63}
   mapMax: {x: 3.8704996, y: 9.669999}
-  firstFailureDelay: 5
+  journeyDistance: 54000
+  kilometersPerSecond: 120
+  firstFailureDelay: 6
   maxFailuresAtOnce:
     serializedVersion: 2
     m_Curve:
@@ -48,15 +50,15 @@ MonoBehaviour:
       time: 0
       value: 2
       inSlope: 0
-      outSlope: 3
+      outSlope: 2
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
       time: 1
-      value: 5
-      inSlope: 3
+      value: 4
+      inSlope: 2
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -70,7 +72,7 @@ MonoBehaviour:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 14
+      value: 15
       inSlope: 0
       outSlope: -8
       tangentMode: 0
@@ -79,7 +81,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 1
-      value: 6
+      value: 7
       inSlope: -8
       outSlope: 0
       tangentMode: 0
@@ -94,7 +96,7 @@ MonoBehaviour:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 7
+      value: 6
       inSlope: 0
       outSlope: 4
       tangentMode: 0
@@ -103,7 +105,7 @@ MonoBehaviour:
       outWeight: 0
     - serializedVersion: 3
       time: 1
-      value: 11
+      value: 10
       inSlope: 4
       outSlope: 0
       tangentMode: 0
@@ -113,9 +115,26 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  othersLossMultiplier: 0.5
+  noMercyProgress: 0.9
+  tutorialEnabled: 1
+  tutorialFirstFailureDelay: 10
+  tutorialStepDelay: 8
+  tutorialBreakStability: 10
+  tutorialExtraFailures: 2
+  tutorialEnterMessage: "\xA1Aver\xEDa en {zone}! Pulsa {key} para entrar en la nave
+    y repararla"
+  tutorialRepairMessage: "Busca la zona de {zone} (en rojo en el mapa) y rep\xE1rala"
+  tutorialBackMessage: "\xA1Reparado! Vuelve al asiento del piloto para seguir el
+    viaje"
   dangerThreshold: 30
   pressureDamagePerSecond: 2
   overloadExplosionDamage: 8
   overloadExplosionInterval: {x: 12, y: 4}
-  zonesAtZeroToLose: 3
+  criticalStability: 10
+  criticalZonesToLose: 3
+  meltdownSeconds: 6
   pilotingScene: MinijuegoPrincipal
+  gameOverScene: Derrota
+  menuScene: MenuPrincipal
+  endingScene: Final

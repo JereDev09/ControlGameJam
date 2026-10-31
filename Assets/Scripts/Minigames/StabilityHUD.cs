@@ -58,6 +58,8 @@ public class StabilityHUD : MonoBehaviour
     private Volume alertVolume;
     private VolumeProfile alertProfile;
     private bool isAlertShown;
+    private Text failureNotice;
+    private CanvasGroup failureNoticeGroup;
 
     private void Start()
     {
@@ -66,6 +68,8 @@ public class StabilityHUD : MonoBehaviour
         alertRoot.SetActive(false);
         CreateAlertVolume();
         CreateMarkers();
+        CreateFailureNotice();
+        ShipState.SystemBroke += OnSystemBroke;
 
         // Si hay jugador estamos en primera persona; si no, pilotando (ahí solo sale la alerta)
         FirstPersonController firstPerson = FindFirstObjectByType<FirstPersonController>();
@@ -95,11 +99,37 @@ public class StabilityHUD : MonoBehaviour
 
     private void OnDestroy()
     {
+        ShipState.SystemBroke -= OnSystemBroke;
+
         // El perfil de la viñeta se creó por código, así que hay que borrarlo a mano
         if (alertProfile != null)
         {
             Destroy(alertProfile);
         }
+    }
+
+    // ---------- Aviso de avería nueva ----------
+
+    // Cuando una zona se avería sale "¡AVERÍA EN ...!" un par de segundos
+    private void OnSystemBroke(string systemName)
+    {
+        failureNotice.text = $"¡AVERÍA EN {systemName.ToUpper()}!";
+        failureNoticeGroup.DOKill();
+        failureNoticeGroup.alpha = 1f;
+        failureNoticeGroup.DOFade(0f, 0.6f).SetDelay(2.5f).SetLink(failureNotice.gameObject);
+        MinigameFX.Punch(failureNotice.transform, 0.3f);
+    }
+
+    // Texto arriba al centro, debajo del mensaje de alerta (se crea al empezar)
+    private void CreateFailureNotice()
+    {
+        failureNotice = MinigameUI.CreateText("FailureNotice", alertRoot.transform.parent, "", 34, Vector2.zero, new Vector2(1000f, 60f));
+        failureNotice.color = new Color(1f, 0.7f, 0.2f);
+        AnchorToCorner(failureNotice.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -215f));
+        failureNotice.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
+        failureNoticeGroup = failureNotice.gameObject.AddComponent<CanvasGroup>();
+        failureNoticeGroup.alpha = 0f;
+        failureNoticeGroup.blocksRaycasts = false;
     }
 
     // ---------- Alerta ----------
@@ -137,7 +167,12 @@ public class StabilityHUD : MonoBehaviour
             warnings += "\nSIN ENERGÍA: las terminales no funcionan";
         }
 
-        alertText.text = $"¡ESTABILIDAD COMPROMETIDA!\n<size=26>{compromised}{warnings}</size>";
+        // Varias zonas críticas: cuenta atrás para explotar (FailureDirector)
+        string title = ShipState.MeltdownTimeLeft >= 0f
+            ? $"¡LA NAVE VA A EXPLOTAR! {Mathf.CeilToInt(ShipState.MeltdownTimeLeft)}"
+            : "¡ESTABILIDAD COMPROMETIDA!";
+
+        alertText.text = $"{title}\n<size=26>{compromised}{warnings}</size>";
     }
 
     // Radar y navegación van juntos: si falla cualquiera de los dos se pierde el rumbo
@@ -163,13 +198,14 @@ public class StabilityHUD : MonoBehaviour
             // La viñeta late despacio y el mensaje parpadea
             alertVolume.weight = 0.4f;
             DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 1f, 0.6f)
-                .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetTarget(alertVolume);
+                .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetTarget(alertVolume).SetLink(alertVolume.gameObject);
             alertMessage.alpha = 1f;
-            alertMessage.DOFade(0.15f, 0.35f).SetLoops(-1, LoopType.Yoyo);
+            alertMessage.DOFade(0.15f, 0.35f).SetLoops(-1, LoopType.Yoyo).SetLink(alertMessage.gameObject);
         }
         else
         {
-            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0f, 0.4f).SetTarget(alertVolume);
+            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0f, 0.4f)
+                .SetTarget(alertVolume).SetLink(alertVolume.gameObject);
         }
     }
 

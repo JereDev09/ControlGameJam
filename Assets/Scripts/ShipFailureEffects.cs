@@ -9,6 +9,7 @@ using UnityEngine.UI;
 // - Electricidad: la pantalla se va a negro a ratos.
 // - Radar / Navegación: la barra del viaje tiembla y se desvanece (rumbo perdido).
 // - Sobrecarga: cada explosión interna se nota con chispas y un temblor.
+// - Y al chocar con un asteroide: destello rojo en la pantalla y chispas.
 // Son progresivos: suaves al bajar del umbral de peligro y máximos al llegar a 0%.
 // Lo añade Tools > Nave > Añadir efectos de averías (que también crea las chispas y el humo).
 public class ShipFailureEffects : MonoBehaviour
@@ -34,6 +35,7 @@ public class ShipFailureEffects : MonoBehaviour
     private float jamRemaining;
     private float blackoutRemaining;
     private Image blackout;
+    private Image damageFlash;
     private Tween shake;
 
     private void Start()
@@ -56,11 +58,29 @@ public class ShipFailureEffects : MonoBehaviour
         baseSpeedMultiplier = ship.SpeedMultiplier;
         CreateBlackout();
         FailureDirector.OverloadExploded += OnOverloadExploded;
+        ship.Damaged += OnShipDamaged;
     }
 
     private void OnDestroy()
     {
         FailureDirector.OverloadExploded -= OnOverloadExploded;
+        if (ship != null)
+        {
+            ship.Damaged -= OnShipDamaged;
+        }
+    }
+
+    // Al chocar: destello rojo en la pantalla y chispas saltando de la nave
+    private void OnShipDamaged()
+    {
+        damageFlash.DOKill();
+        damageFlash.color = new Color(1f, 0.1f, 0.05f, 0.45f);
+        damageFlash.DOFade(0f, 0.5f).SetLink(damageFlash.gameObject);
+
+        if (sparks != null)
+        {
+            sparks.Emit(30);
+        }
     }
 
     private void Update()
@@ -202,5 +222,10 @@ public class ShipFailureEffects : MonoBehaviour
         MinigameUI.Stretch(blackout.rectTransform);
         blackout.raycastTarget = false;
         blackout.enabled = false;
+
+        // Destello rojo al chocar (empieza transparente)
+        damageFlash = MinigameUI.CreateImage("DamageFlash", canvas.transform, new Color(1f, 0.1f, 0.05f, 0f), Vector2.zero, Vector2.zero);
+        MinigameUI.Stretch(damageFlash.rectTransform);
+        damageFlash.raycastTarget = false;
     }
 }

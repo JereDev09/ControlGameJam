@@ -21508,7 +21508,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 1
     m_LineSpacing: 1
-  m_Text: NOMBRE DEL JUEGO
+  m_Text: SPACEXPRESS
 --- !u!222 &1839624072
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -21695,8 +21695,8 @@ MonoBehaviour:
   noiseSpeed: 15
   lengthNoise: 0.3
   widthNoise: 0.08
-  dodgeLength: 2.2
   responseSpeed: 10
+  stallResponseSpeed: 30
   flameRenderer: {fileID: 0}
   glowNoise: 0.35
 --- !u!1 &2119741724
@@ -21748,8 +21748,8 @@ MonoBehaviour:
   noiseSpeed: 15
   lengthNoise: 0.3
   widthNoise: 0.08
-  dodgeLength: 2.2
   responseSpeed: 10
+  stallResponseSpeed: 30
   flameRenderer: {fileID: 0}
   glowNoise: 0.35
 --- !u!1 &2128992771
@@ -21801,8 +21801,8 @@ MonoBehaviour:
   noiseSpeed: 15
   lengthNoise: 0.3
   widthNoise: 0.08
-  dodgeLength: 2.2
   responseSpeed: 10
+  stallResponseSpeed: 30
   flameRenderer: {fileID: 0}
   glowNoise: 0.35
 --- !u!1660057539 &9223372036854775807

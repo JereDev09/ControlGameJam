@@ -23,10 +23,17 @@ public class ShipMovement : MonoBehaviour
     [Tooltip("1 = velocidad normal. Los fallos de la nave la podrán bajar (0.5 = mitad). Mueve la barra del viaje y el fuego")]
     [SerializeField, Range(0f, 2f)] private float speedMultiplier = 1f;
 
+    [Header("Golpes")]
+    [Tooltip("Segundos que la nave parpadea tras un golpe sin recibir más daño (para no encadenar choques)")]
+    [SerializeField] private float invulnerableTime = 0.8f;
+
     [Header("Explosión (la crea Tools > Nave)")]
     [SerializeField] private ParticleSystem explosionParticles;
     [SerializeField] private float cameraShakeStrength = 0.4f;
     public UnityEvent onDestroyed;
+
+    // Avisa a otros scripts (efectos de pantalla, icono del viaje...) de que la nave ha recibido un golpe
+    public event System.Action Damaged;
 
     private Vector3 movementVelocity;
     private float currentBankAngle;
@@ -34,6 +41,9 @@ public class ShipMovement : MonoBehaviour
     private Quaternion initialRotation;
     private GUIStyle healthTextStyle;
     private bool hasExploded;
+    private Renderer[] shipRenderers;
+    private float invulnerableTimer;
+    private float damageFlashTimer;
 
     // Acciones definidas en Assets/InputSystem_Actions (mapa "Player")
     private InputAction moveAction;
@@ -72,12 +82,28 @@ public class ShipMovement : MonoBehaviour
 
         moveAction = InputSystem.actions.FindAction("Move");
         sprintAction = InputSystem.actions.FindAction("Sprint");
+
+        // Las partes visibles de la nave (sin contar partículas), para hacerla parpadear al chocar
+        shipRenderers = System.Array.FindAll(GetComponentsInChildren<Renderer>(), shipRenderer => !(shipRenderer is ParticleSystemRenderer));
     }
 
     // Si se desactiva el control (por ejemplo durante las animaciones de cámara), deja de acelerar
+    // y, si estaba parpadeando por un golpe, vuelve a verse
     private void OnDisable()
     {
         IsBoosting = false;
+
+        if (invulnerableTimer > 0f && !hasExploded)
+        {
+            invulnerableTimer = 0f;
+            foreach (Renderer shipRenderer in shipRenderers)
+            {
+                if (shipRenderer != null)
+                {
+                    shipRenderer.enabled = true;
+                }
+            }
+        }
     }
 
     private void Update()
@@ -97,6 +123,9 @@ public class ShipMovement : MonoBehaviour
         {
             return;
         }
+
+        UpdateInvulnerability();
+        damageFlashTimer -= Time.deltaTime;
 
         // Con los controles atascados la nave no responde y sigue con la inercia que llevaba
         Vector2 moveInput = ControlsJammed ? Vector2.zero : moveAction.ReadValue<Vector2>();
@@ -142,7 +171,7 @@ public class ShipMovement : MonoBehaviour
 
     public void TakeDamage(int damage)
     {
-        if (damage <= 0 || IsDestroyed)
+        if (damage <= 0 || IsDestroyed || invulnerableTimer > 0f)
         {
             return;
         }
@@ -150,11 +179,38 @@ public class ShipMovement : MonoBehaviour
         ShipState.Damage(damage * DamageMultiplier);
         Debug.LogWarning($"¡Impacto! Vida de la nave: {Mathf.CeilToInt(ShipState.Health)}/{maxHealth}", this);
 
+        invulnerableTimer = invulnerableTime;
+        damageFlashTimer = 0.5f;
+
+        // La nave da un salto (relativo a su tamaño) y avisa a los demás efectos
+        transform.DOComplete();
+        transform.DOPunchScale(transform.localScale * 0.25f, 0.3f, 10).SetLink(gameObject);
+        Damaged?.Invoke();
+
         // Cuanto más daño hace el golpe (casco debilitado), más tiembla la cámara
         if (movementCamera != null && !IsDestroyed)
         {
             movementCamera.transform.DOComplete();
-            movementCamera.transform.DOShakePosition(0.25f, cameraShakeStrength * 0.4f * DamageMultiplier, 20).SetLink(movementCamera.gameObject);
+            movementCamera.transform.DOShakePosition(0.3f, cameraShakeStrength * 0.6f * DamageMultiplier, 25).SetLink(movementCamera.gameObject);
+        }
+    }
+
+    // Tras un golpe la nave parpadea un momento y no recibe más daño
+    private void UpdateInvulnerability()
+    {
+        if (invulnerableTimer <= 0f)
+        {
+            return;
+        }
+
+        invulnerableTimer -= Time.deltaTime;
+        bool visible = invulnerableTimer <= 0f || Mathf.Repeat(invulnerableTimer, 0.12f) > 0.06f;
+        foreach (Renderer shipRenderer in shipRenderers)
+        {
+            if (shipRenderer != null)
+            {
+                shipRenderer.enabled = visible;
+            }
         }
     }
 
@@ -203,9 +259,19 @@ public class ShipMovement : MonoBehaviour
         Rect barRect = new Rect(16f, 16f, 220f, 28f);
         Color previousColor = GUI.color;
 
-        GUI.color = new Color(0.08f, 0.1f, 0.12f, 0.85f);
+        // Al recibir un golpe el fondo de la barra parpadea en blanco
+        bool flashing = damageFlashTimer > 0f && Mathf.Repeat(damageFlashTimer, 0.1f) > 0.05f;
+        GUI.color = flashing ? Color.white : new Color(0.08f, 0.1f, 0.12f, 0.85f);
         GUI.Box(barRect, GUIContent.none);
-        GUI.color = Color.Lerp(new Color(0.8f, 0.16f, 0.12f), new Color(0.2f, 0.72f, 0.32f), healthRatio);
+
+        // Con poca vida, el relleno late en rojo
+        Color fillColor = Color.Lerp(new Color(0.8f, 0.16f, 0.12f), new Color(0.2f, 0.72f, 0.32f), healthRatio);
+        if (healthRatio < 0.3f)
+        {
+            fillColor = Color.Lerp(fillColor, new Color(0.35f, 0f, 0f), Mathf.PingPong(Time.time * 3f, 1f));
+        }
+
+        GUI.color = fillColor;
         GUI.Box(new Rect(19f, 19f, 214f * healthRatio, 22f), GUIContent.none);
         GUI.color = Color.white;
         GUI.Label(barRect, $"VIDA {currentHealth}/{maxHealth}", healthTextStyle);

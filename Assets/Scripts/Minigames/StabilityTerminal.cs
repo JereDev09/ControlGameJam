@@ -24,6 +24,9 @@ public class StabilityTerminal : MonoBehaviour, IInteractable
     private int closedFrame;
     private bool isOpen;
 
+    // La terminal que hay abierta ahora mismo (para que Escape la cierre antes de pausar)
+    private static StabilityTerminal openTerminal;
+
     // Sin electricidad la terminal no funciona
     public string Prompt => ShipState.HasPower ? prompt : $"{prompt} (sin energía)";
 
@@ -59,13 +62,14 @@ public class StabilityTerminal : MonoBehaviour, IInteractable
         MinigameUI.EnsureEventSystem();
 
         isOpen = true;
+        openTerminal = this;
         openedFrame = Time.frameCount;
         rows.Refresh();
         uiRoot.SetActive(true);
 
         window.DOKill(true);
         window.localScale = Vector3.one * 0.85f;
-        window.DOScale(1f, 0.3f).SetEase(Ease.OutBack);
+        window.DOScale(1f, 0.3f).SetEase(Ease.OutBack).SetLink(gameObject);
     }
 
     private void Update()
@@ -84,6 +88,18 @@ public class StabilityTerminal : MonoBehaviour, IInteractable
         }
     }
 
+    // Lo usa el menú de pausa: si la terminal está abierta, Escape la cierra en vez de pausar
+    public static bool CloseOpenTerminal()
+    {
+        if (openTerminal == null)
+        {
+            return false;
+        }
+
+        openTerminal.Close();
+        return true;
+    }
+
     private void Close()
     {
         if (!isOpen)
@@ -92,11 +108,12 @@ public class StabilityTerminal : MonoBehaviour, IInteractable
         }
 
         isOpen = false;
+        openTerminal = null;
         closedFrame = Time.frameCount;
         PlayerControl.Set(player, true);
 
         window.DOKill(true);
-        window.DOScale(0.85f, 0.15f).SetEase(Ease.InBack).OnComplete(() => uiRoot.SetActive(false));
+        window.DOScale(0.85f, 0.15f).SetEase(Ease.InBack).SetLink(gameObject).OnComplete(() => uiRoot.SetActive(false));
     }
 
     // Solo la usa la herramienta del editor

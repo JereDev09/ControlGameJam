@@ -26,6 +26,7 @@ public class AsteroidSpawner : MonoBehaviour
     private readonly List<Asteroid> asteroids = new List<Asteroid>();
     private float spawnTimer;
     private Material asteroidMaterial;
+    private Mesh debrisMesh;
 
     private sealed class Asteroid
     {
@@ -61,6 +62,11 @@ public class AsteroidSpawner : MonoBehaviour
             asteroidMaterial = new Material(shader);
             asteroidMaterial.color = new Color(0.34f, 0.35f, 0.33f);
         }
+
+        // Malla de cubo para los trozos de roca que salen al chocar
+        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        debrisMesh = cube.GetComponent<MeshFilter>().sharedMesh;
+        Destroy(cube);
 
         spawnTimer = spawnInterval;
     }
@@ -156,6 +162,7 @@ public class AsteroidSpawner : MonoBehaviour
                 if ((asteroidTransform.position - ship.transform.position).sqrMagnitude <= hitDistance * hitDistance)
                 {
                     ship.TakeDamage(damagePerHit);
+                    SpawnDebris(asteroidTransform.position, asteroid.radius * 2f);
                     RemoveAsteroid(index);
                     continue;
                 }
@@ -169,6 +176,56 @@ public class AsteroidSpawner : MonoBehaviour
                 RemoveAsteroid(index);
             }
         }
+    }
+
+    // Al chocar, el asteroide estalla en trozos de roca que salen girando (se borran solos)
+    private void SpawnDebris(Vector3 position, float size)
+    {
+        GameObject debrisObject = new GameObject("AsteroidDebris");
+        debrisObject.transform.position = position;
+
+        ParticleSystem debris = debrisObject.AddComponent<ParticleSystem>();
+        debris.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+        ParticleSystem.MainModule main = debris.main;
+        main.loop = false;
+        main.duration = 1f;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(2f * size, 6f * size);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.08f * size, 0.25f * size);
+        main.startRotation3D = true;
+        main.startRotationX = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+        main.startRotationY = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+        main.startRotationZ = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.stopAction = ParticleSystemStopAction.Destroy;
+
+        ParticleSystem.EmissionModule emission = debris.emission;
+        emission.rateOverTime = 0f;
+        emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 16) });
+
+        ParticleSystem.ShapeModule shape = debris.shape;
+        shape.shapeType = ParticleSystemShapeType.Sphere;
+        shape.radius = size * 0.4f;
+
+        ParticleSystem.RotationOverLifetimeModule rotation = debris.rotationOverLifetime;
+        rotation.enabled = true;
+        rotation.separateAxes = true;
+        rotation.x = new ParticleSystem.MinMaxCurve(-6f, 6f);
+        rotation.y = new ParticleSystem.MinMaxCurve(-6f, 6f);
+        rotation.z = new ParticleSystem.MinMaxCurve(-6f, 6f);
+
+        ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = debris.sizeOverLifetime;
+        sizeOverLifetime.enabled = true;
+        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 0f));
+
+        // Los trozos son cubos con el mismo material de roca que los asteroides
+        ParticleSystemRenderer debrisRenderer = debrisObject.GetComponent<ParticleSystemRenderer>();
+        debrisRenderer.renderMode = ParticleSystemRenderMode.Mesh;
+        debrisRenderer.mesh = debrisMesh;
+        debrisRenderer.sharedMaterial = asteroidMaterial;
+
+        debris.Play();
     }
 
     private void RemoveAsteroid(int index)

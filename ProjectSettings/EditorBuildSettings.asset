@@ -17,6 +17,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MinijuegoPrincipal.unity
     guid: 4552940bb03a03f43a3826785df15e77
+  - enabled: 1
+    path: Assets/Scenes/Final.unity
+    guid: 664590d4261bf4c4fb36ff881c3a5ad5
+  - enabled: 1
+    path: Assets/Scenes/Derrota.unity
+    guid: 766b10f28c5eb364fb7bdb8c01519595
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

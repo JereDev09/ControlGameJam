@@ -76,7 +76,7 @@ public class ShipTutorial : MonoBehaviour
 
     private void Update()
     {
-        if (ShipState.IsDestroyed || MainMenu.IsOpen)
+        if (ShipState.IsDestroyed || ShipState.HasArrived || MainMenu.IsOpen)
         {
             ShowMessage(null);
             return;
@@ -156,9 +156,8 @@ public class ShipTutorial : MonoBehaviour
         currentZone = pendingZones[0];
         pendingZones.RemoveAt(0);
 
-        // La estabilidad baja de golpe para que se note el efecto de la avería
+        // Su estabilidad irá bajando deprisa hasta el nivel del tutorial (lo hace FailureDirector)
         ShipState.Break(currentZone);
-        ShipState.SetStability(currentZone, ShipState.Config.tutorialBreakStability);
         ShipState.CanEnterShip = true;
         step = Step.Repairing;
     }

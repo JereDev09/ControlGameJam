@@ -48,15 +48,15 @@ public class MainMenu : MonoBehaviour
     private void PlayIntro()
     {
         fade.color = Color.black;
-        fade.DOFade(0f, 1f);
+        fade.DOFade(0f, 1f).SetLink(gameObject);
 
         Vector2 titlePosition = title.anchoredPosition;
         title.anchoredPosition = titlePosition + Vector2.up * 300f;
-        title.DOAnchorPos(titlePosition, 0.9f).SetEase(Ease.OutBack).SetDelay(0.3f);
+        title.DOAnchorPos(titlePosition, 0.9f).SetEase(Ease.OutBack).SetDelay(0.3f).SetLink(gameObject);
         title.DOScale(1.04f, 1.5f).SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetDelay(1.2f).SetLink(title.gameObject);
 
         mainPanel.alpha = 0f;
-        mainPanel.DOFade(1f, 0.6f).SetDelay(1f);
+        mainPanel.DOFade(1f, 0.6f).SetDelay(1f).SetLink(gameObject);
     }
 
     // La nave sube y baja despacio (la altura depende de su tamaño)
@@ -77,7 +77,7 @@ public class MainMenu : MonoBehaviour
         mainPanel.interactable = false;
         MinigameFX.Punch(playButton.transform);
         ShipState.Reset(); // partida nueva
-        SceneTransition.Load(gameScene);
+        SceneTransition.Load(gameScene, 0.8f, 1f);
     }
 
     private void ShowCredits(bool show)
@@ -86,12 +86,12 @@ public class MainMenu : MonoBehaviour
         CanvasGroup appear = show ? creditsPanel : mainPanel;
 
         hide.interactable = false;
-        hide.DOFade(0f, 0.25f).OnComplete(() => hide.gameObject.SetActive(false));
+        hide.DOFade(0f, 0.25f).SetLink(gameObject).OnComplete(() => hide.gameObject.SetActive(false));
 
         appear.gameObject.SetActive(true);
         appear.interactable = true;
         appear.alpha = 0f;
-        appear.DOFade(1f, 0.25f);
+        appear.DOFade(1f, 0.25f).SetLink(gameObject);
     }
 
     // Solo la usa la herramienta del editor

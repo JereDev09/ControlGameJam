@@ -9,6 +9,8 @@ public static class ShipTools
 {
     private const string ShipScenePath = "Assets/Scenes/MinijuegoPrincipal.unity";
     private const string MenuScenePath = "Assets/Scenes/MenuPrincipal.unity";
+    private const string EndingScenePath = "Assets/Scenes/Final.unity";
+    private const string GameOverScenePath = "Assets/Scenes/Derrota.unity";
 
     // Añade el efecto de propulsión a todos los objetos de la escena que se llamen PivoteFuego...
     [MenuItem("Tools/Nave/Añadir efecto a los fuegos (PivoteFuego...)")]
@@ -279,6 +281,64 @@ public static class ShipTools
         EditorUtility.DisplayDialog("Menú",
             $"Menú creado en {MenuScenePath} y puesto el primero en la lista de escenas de la build.\n\n" +
             "Cambia el nombre del juego y los créditos en MainMenu > MenuCanvas. La escena que carga Jugar se elige en el componente MainMenu.", "Vale");
+    }
+
+    // Escena del final, al entregar el pedido (una imagen que vuelve al menú pasado un rato)
+    [MenuItem("Tools/Menú/Crear escena final")]
+    private static void CreateEndingScene()
+    {
+        CreateImageScene(EndingScenePath, "¡PEDIDO ENTREGADO!", "Gracias por jugar");
+    }
+
+    // Escena de la derrota, después de ver explotar la nave (una imagen que vuelve al menú pasado un rato)
+    [MenuItem("Tools/Menú/Crear escena de derrota")]
+    private static void CreateGameOverScene()
+    {
+        CreateImageScene(GameOverScenePath, "NAVE DESTRUIDA", "El pedido no llegará a su destino...");
+    }
+
+    // Crea una escena con una cámara y un EndingScreen (imagen + textos) y la añade a la build
+    private static void CreateImageScene(string path, string title, string subtitle)
+    {
+        if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null)
+        {
+            EditorUtility.DisplayDialog("Menú", $"Ya existe {path}. Bórrala si quieres crearla de nuevo.", "Vale");
+            return;
+        }
+
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+        {
+            return;
+        }
+
+        Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+        // Cámara con fondo negro (sin cámara la pantalla no se limpia)
+        GameObject cameraObject = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
+        cameraObject.tag = "MainCamera";
+        Camera camera = cameraObject.GetComponent<Camera>();
+        camera.clearFlags = CameraClearFlags.SolidColor;
+        camera.backgroundColor = Color.black;
+
+        new GameObject("EndingScreen").AddComponent<EndingScreen>().CreateUI(title, subtitle);
+
+        EditorSceneManager.SaveScene(scene, path);
+        AddSceneLastInBuild(path);
+
+        EditorUtility.DisplayDialog("Menú",
+            $"Escena creada en {path} y añadida a la lista de escenas de la build.\n\n" +
+            "Pon tu imagen en EndingScreen > EndingCanvas > Image (campo Source Image). " +
+            "Los segundos que dura se cambian en el componente EndingScreen.", "Vale");
+    }
+
+    private static void AddSceneLastInBuild(string path)
+    {
+        List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+        if (!scenes.Exists(buildScene => buildScene.path == path))
+        {
+            scenes.Add(new EditorBuildSettingsScene(path, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
     }
 
     private static void AddSceneFirstInBuild(string path)

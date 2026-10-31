@@ -4,7 +4,8 @@ using UnityEngine.UI;
 
 // Progreso del viaje hasta la entrega: una barra arriba de la pantalla que la nave recorre
 // de izquierda a derecha. Avanza según la velocidad de la nave (ShipMovement.TravelSpeed),
-// así que si algo la frena, el viaje tarda más. Al llegar al final lanza onArrived.
+// así que si algo la frena, el viaje tarda más. Al llegar al final lanza onArrived y carga
+// la escena del final (Resources/ShipSystems > endingScene).
 // El largo del viaje está en Resources/ShipSystems (sección Viaje).
 // La UI la crea Tools > Nave > Añadir barra de progreso del viaje.
 public class DeliveryDistance : MonoBehaviour
@@ -24,6 +25,7 @@ public class DeliveryDistance : MonoBehaviour
     private float distance;
     private bool hasArrived;
     private CanvasGroup barGroup;
+    private Image iconImage;
 
     public float Distance => distance;
 
@@ -58,6 +60,39 @@ public class DeliveryDistance : MonoBehaviour
                 barGroup = bar.AddComponent<CanvasGroup>();
             }
         }
+
+        if (shipIcon != null)
+        {
+            iconImage = shipIcon.GetComponentInChildren<Image>();
+        }
+
+        if (ship != null)
+        {
+            ship.Damaged += OnShipDamaged;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (ship != null)
+        {
+            ship.Damaged -= OnShipDamaged;
+        }
+    }
+
+    // Al chocar, el icono de la nave da un salto y se pone rojo un momento
+    private void OnShipDamaged()
+    {
+        if (shipIcon == null)
+        {
+            return;
+        }
+
+        MinigameFX.Punch(shipIcon, 0.5f);
+        if (iconImage != null)
+        {
+            MinigameFX.Flash(iconImage, Color.red, 0.5f);
+        }
     }
 
     private void Update()
@@ -69,10 +104,13 @@ public class DeliveryDistance : MonoBehaviour
             float speed = ship != null ? ship.TravelSpeed : 1f;
             distance = Mathf.Max(0f, distance - ShipState.Config.kilometersPerSecond * speed * Time.deltaTime);
 
+            // Pedido entregado: se acaban las averías y se pasa a la escena del final
             if (distance <= 0f)
             {
                 hasArrived = true;
+                ShipState.HasArrived = true;
                 onArrived.Invoke();
+                SceneTransition.Load(FailureDirector.GetSceneOrMenu(ShipState.Config.endingScene), 2f);
             }
         }
 
@@ -85,7 +123,25 @@ public class DeliveryDistance : MonoBehaviour
             float shownProgress = Progress + Random.Range(-1f, 1f) * SignalNoise * 0.15f;
             PlaceOnBar(Mathf.Clamp01(shownProgress));
             barGroup.alpha = Random.value < SignalNoise * 0.3f ? 0f : 1f - SignalNoise * 0.7f;
+            WobbleIcon();
         }
+    }
+
+    // Con averías el icono se balancea: más fuerte y más rápido cuantas más zonas fallan
+    private void WobbleIcon()
+    {
+        int failingZones = 0;
+        foreach (ShipState.SystemState system in ShipState.Systems)
+        {
+            if (system.isFailing)
+            {
+                failingZones++;
+            }
+        }
+
+        float amplitude = Mathf.Min(failingZones * 8f, 30f);
+        float angle = Mathf.Sin(Time.time * (4f + failingZones * 2f)) * amplitude;
+        shipIcon.localRotation = Quaternion.Euler(0f, 0f, angle);
     }
 
     // El relleno y el icono de la nave se colocan con anclas: 0 = izquierda, 1 = derecha

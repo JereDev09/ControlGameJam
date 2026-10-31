@@ -1,8 +1,10 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 // Movimiento en primera persona: andar, correr, saltar y mirar con el ratón.
 // Va en el objeto del jugador, con la cámara como hijo.
+// Al empezar la escena la cámara sube un poco, como al levantarse del asiento del piloto.
 [RequireComponent(typeof(CharacterController))]
 public class FirstPersonController : MonoBehaviour
 {
@@ -18,6 +20,11 @@ public class FirstPersonController : MonoBehaviour
     [Header("Look")]
     [SerializeField] private float lookSensitivity = 0.1f;
     [SerializeField] private float maxLookAngle = 85f;
+
+    [Header("Al entrar en la escena")]
+    [Tooltip("Cuánto más abajo empieza la cámara (0 = sin animación)")]
+    [SerializeField] private float standUpHeight = 0.5f;
+    [SerializeField] private float standUpDuration = 1.2f;
 
     private CharacterController characterController;
     private float verticalVelocity;
@@ -42,6 +49,14 @@ public class FirstPersonController : MonoBehaviour
         lookAction = InputSystem.actions.FindAction("Look");
         jumpAction = InputSystem.actions.FindAction("Jump");
         sprintAction = InputSystem.actions.FindAction("Sprint");
+    }
+
+    // La cámara sube suavemente hasta su altura mientras se aclara el fundido de entrada
+    private void Start()
+    {
+        Vector3 cameraPosition = cameraTransform.localPosition;
+        cameraTransform.localPosition = cameraPosition + Vector3.down * standUpHeight;
+        cameraTransform.DOLocalMove(cameraPosition, standUpDuration).SetEase(Ease.OutCubic).SetLink(gameObject);
     }
 
     private void OnEnable()

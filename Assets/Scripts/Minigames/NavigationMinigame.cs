@@ -2,10 +2,20 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Sistema de navegación: traza la ruta uniendo puntos vecinos desde la nave (verde) hasta
-// el destino (azul) sin tocar asteroides (rojo). El combustible da justo para la ruta más corta.
+// Sistema de navegación: traza la ruta uniendo puntos vecinos desde la nave hasta el destino
+// sin tocar asteroides. El combustible da justo para la ruta más corta.
+// Cada tipo de punto puede tener su sprite; si no, se usa un color de relleno.
 public class NavigationMinigame : Minigame
 {
+    private enum PointType
+    {
+        Empty,
+        Asteroid,
+        Destination,
+        Ship,
+        Visited
+    }
+
     private static readonly Color EmptyColor = new Color(0.35f, 0.38f, 0.45f);
     private static readonly Color AsteroidColor = new Color(0.8f, 0.2f, 0.2f);
     private static readonly Color DestinationColor = new Color(0.2f, 0.5f, 1f);
@@ -13,6 +23,15 @@ public class NavigationMinigame : Minigame
     private static readonly Color VisitedColor = new Color(0.2f, 0.45f, 0.2f);
 
     [SerializeField, Range(0f, 0.8f)] private float asteroidChance = 0.4f;
+
+    [Header("Sprites de los puntos (si se deja vacío, se usa un color de relleno)")]
+    [SerializeField] private Sprite emptySprite;
+    [SerializeField] private Sprite asteroidSprite;
+    [SerializeField] private Sprite destinationSprite;
+    [Tooltip("Donde está la nave ahora")]
+    [SerializeField] private Sprite shipSprite;
+    [Tooltip("Puntos por los que ya ha pasado la ruta")]
+    [SerializeField] private Sprite visitedSprite;
 
     [Header("UI")]
     [Tooltip("Lo pone la herramienta. Si cambias el tamaño, regenera la UI")]
@@ -24,6 +43,7 @@ public class NavigationMinigame : Minigame
     [SerializeField] private Image lineTemplate;
 
     private bool[,] isAsteroid;
+    private Sprite[] defaultSprites;   // el sprite que tiene cada punto en la UI, para cuando un tipo no tiene sprite
     private Vector2Int current;
     private Vector2Int destination;
     private int fuel;
@@ -68,11 +88,14 @@ public class NavigationMinigame : Minigame
     protected override void SetupMinigame()
     {
         fuelColor = fuelText.color;
+        defaultSprites = new Sprite[points.Length];
 
         for (int i = 0; i < points.Length; i++)
         {
             Vector2Int point = new Vector2Int(i % gridSize, i / gridSize);
             points[i].onClick.AddListener(() => MoveTo(point));
+            defaultSprites[i] = points[i].image.sprite;
+            points[i].image.preserveAspect = true;
         }
     }
 
@@ -99,7 +122,7 @@ public class NavigationMinigame : Minigame
                 button.transform.DOKill();
                 button.transform.localRotation = Quaternion.identity;
                 button.transform.localScale = Vector3.one;
-                button.image.color = GetPointColor(point);
+                SetLook(point, GetPointType(point));
 
                 // Los asteroides giran despacio
                 if (isAsteroid[x, y])
@@ -162,9 +185,9 @@ public class NavigationMinigame : Minigame
         MinigameUI.PlaceLine(line.rectTransform, GetPosition(current), GetPosition(point));
         MinigameFX.GrowLine(line.rectTransform, 0.15f);
 
-        GetPoint(current).image.color = VisitedColor;
+        SetLook(current, PointType.Visited);
         current = point;
-        target.image.color = ShipColor;
+        SetLook(current, PointType.Ship);
         MinigameFX.Punch(target.transform, 0.3f);
 
         fuel--;
@@ -187,19 +210,54 @@ public class NavigationMinigame : Minigame
         }
     }
 
-    private Color GetPointColor(Vector2Int point)
+    private PointType GetPointType(Vector2Int point)
     {
         if (point == current)
         {
-            return ShipColor;
+            return PointType.Ship;
         }
 
         if (point == destination)
         {
-            return DestinationColor;
+            return PointType.Destination;
         }
 
-        return isAsteroid[point.x, point.y] ? AsteroidColor : EmptyColor;
+        return isAsteroid[point.x, point.y] ? PointType.Asteroid : PointType.Empty;
+    }
+
+    // Cambia el aspecto de un punto: el sprite de su tipo (sin teñir) o, si no tiene,
+    // el sprite que ya tenía el punto teñido con un color de relleno
+    private void SetLook(Vector2Int point, PointType type)
+    {
+        Image image = GetPoint(point).image;
+        Sprite sprite = GetSprite(type);
+
+        image.sprite = sprite != null ? sprite : defaultSprites[point.y * gridSize + point.x];
+        image.color = sprite != null ? Color.white : GetFallbackColor(type);
+    }
+
+    private Sprite GetSprite(PointType type)
+    {
+        switch (type)
+        {
+            case PointType.Asteroid: return asteroidSprite;
+            case PointType.Destination: return destinationSprite;
+            case PointType.Ship: return shipSprite;
+            case PointType.Visited: return visitedSprite;
+            default: return emptySprite;
+        }
+    }
+
+    private static Color GetFallbackColor(PointType type)
+    {
+        switch (type)
+        {
+            case PointType.Asteroid: return AsteroidColor;
+            case PointType.Destination: return DestinationColor;
+            case PointType.Ship: return ShipColor;
+            case PointType.Visited: return VisitedColor;
+            default: return EmptyColor;
+        }
     }
 
     private Button GetPoint(Vector2Int point)
