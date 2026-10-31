@@ -13,6 +13,6 @@ public class PilotSeat : MonoBehaviour, IInteractable
     public void Interact(GameObject interactor)
     {
         PlayerControl.Set(interactor, false);
-        SceneTransition.Load(pilotScene);
+        SceneTransition.Load(pilotScene, 0.25f, 0.25f);
     }
 }

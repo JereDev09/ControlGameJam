@@ -16,7 +16,7 @@ public class SceneTransition : MonoBehaviour
 
     public static bool IsTransitioning { get; private set; }
 
-    public static void Load(string sceneName, float fadeOutDuration = FadeDuration)
+    public static void Load(string sceneName, float fadeOutDuration = FadeDuration, float fadeInDuration = FadeDuration)
     {
         if (IsTransitioning)
         {
@@ -28,7 +28,7 @@ public class SceneTransition : MonoBehaviour
             CreateInstance();
         }
 
-        instance.StartCoroutine(instance.LoadRoutine(sceneName, fadeOutDuration));
+        instance.StartCoroutine(instance.LoadRoutine(sceneName, fadeOutDuration, fadeInDuration));
     }
 
     // Se crea sola la primera vez y sobrevive a los cambios de escena
@@ -46,7 +46,7 @@ public class SceneTransition : MonoBehaviour
         instance.fade.raycastTarget = false;
     }
 
-    private IEnumerator LoadRoutine(string sceneName, float fadeOutDuration)
+    private IEnumerator LoadRoutine(string sceneName, float fadeOutDuration, float fadeInDuration)
     {
         IsTransitioning = true;
         fade.raycastTarget = true; // bloquea los clics mientras dura
@@ -65,7 +65,7 @@ public class SceneTransition : MonoBehaviour
             yield return SceneManager.LoadSceneAsync(sceneName);
         }
 
-        yield return fade.DOFade(0f, FadeDuration).WaitForCompletion();
+        yield return fade.DOFade(0f, fadeInDuration).WaitForCompletion();
         fade.raycastTarget = false;
         IsTransitioning = false;
     }

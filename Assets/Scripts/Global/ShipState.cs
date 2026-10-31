@@ -27,6 +27,7 @@ public static class ShipState
     public static float MaxHealth { get; set; } = 100f;
     public static float Health => health < 0f ? MaxHealth : health;
     public static bool IsDestroyed { get; private set; }
+    public static bool WeaponsUnlocked { get; set; }
 
     // Progreso del viaje: 0 = salida, 1 = destino
     public static float Progress => TotalDistance > 0f && Distance >= 0f ? 1f - Distance / TotalDistance : 0f;
@@ -69,6 +70,7 @@ public static class ShipState
         config = null;
         health = -1f;
         IsDestroyed = false;
+        WeaponsUnlocked = false;
         Distance = -1f;
         TotalDistance = -1f;
         FailureDirector.Remove();

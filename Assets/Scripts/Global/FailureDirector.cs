@@ -126,6 +126,11 @@ public class FailureDirector : MonoBehaviour
             system.stability = Mathf.Max(0f, system.stability - loss);
         }
 
+        if (!ShipState.IsPiloting)
+        {
+            return;
+        }
+
         // Cada cierto tiempo se avería una zona nueva, si no hay ya demasiadas averiadas
         nextFailureTimer -= Time.deltaTime;
         if (nextFailureTimer > 0f)
