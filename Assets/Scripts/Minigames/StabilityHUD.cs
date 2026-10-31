@@ -6,7 +6,7 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 // HUD de la nave, para las dos escenas (pilotar y primera persona):
-// - Alerta: si alguna zona baja del umbral, viñeta roja latiendo y un mensaje parpadeando arriba.
+// - Alerta: si alguna zona baja del umbral, viñeta tenue y un aviso breve arriba.
 // - Minimapa redondo (arriba a la derecha, solo en primera persona): gira con tu vista; las zonas
 //   lejanas se quedan pegadas al borde apuntando hacia ellas, y las que fallan laten en rojo.
 // - Panel con la estabilidad de cada zona (opcional, solo en primera persona; también está la terminal).
@@ -20,9 +20,9 @@ public class StabilityHUD : MonoBehaviour
     [Tooltip("Metros del mundo que se ven desde el centro del mapa hasta el borde (menos = más zoom)")]
     [SerializeField] private float mapVisibleRadius = 8f;
 
-    [Header("Viñeta roja de la alerta")]
-    [SerializeField] private Color vignetteColor = new Color(0.9f, 0f, 0f);
-    [SerializeField, Range(0f, 1f)] private float vignetteIntensity = 0.55f;
+    [Header("Viñeta sutil de la alerta")]
+    [SerializeField] private Color vignetteColor = new Color(0.75f, 0.38f, 0.12f);
+    [SerializeField, Range(0f, 1f)] private float vignetteIntensity = 0.2f;
 
     [Header("UI (la crea la herramienta)")]
     [Tooltip("Fila desactivada que se copia para cada zona. Sus hijos deben llamarse Name, Bar (con Fill dentro) y Percent")]
@@ -58,18 +58,16 @@ public class StabilityHUD : MonoBehaviour
     private Volume alertVolume;
     private VolumeProfile alertProfile;
     private bool isAlertShown;
-    private Text failureNotice;
-    private CanvasGroup failureNoticeGroup;
 
     private void Start()
     {
         rows = new StabilityRows(rowTemplate);
         panel = rowTemplate.parent.gameObject; // el panel es el padre de las filas
+        alertText.color = new Color(1f, 0.72f, 0.45f);
+        alertText.fontSize = 30;
         alertRoot.SetActive(false);
         CreateAlertVolume();
         CreateMarkers();
-        CreateFailureNotice();
-        ShipState.SystemBroke += OnSystemBroke;
 
         // Si hay jugador estamos en primera persona; si no, pilotando (ahí solo sale la alerta)
         FirstPersonController firstPerson = FindFirstObjectByType<FirstPersonController>();
@@ -99,8 +97,6 @@ public class StabilityHUD : MonoBehaviour
 
     private void OnDestroy()
     {
-        ShipState.SystemBroke -= OnSystemBroke;
-
         // El perfil de la viñeta se creó por código, así que hay que borrarlo a mano
         if (alertProfile != null)
         {
@@ -108,46 +104,27 @@ public class StabilityHUD : MonoBehaviour
         }
     }
 
-    // ---------- Aviso de avería nueva ----------
-
-    // Cuando una zona se avería sale "¡AVERÍA EN ...!" un par de segundos
-    private void OnSystemBroke(string systemName)
-    {
-        failureNotice.text = $"¡AVERÍA EN {systemName.ToUpper()}!";
-        failureNoticeGroup.DOKill();
-        failureNoticeGroup.alpha = 1f;
-        failureNoticeGroup.DOFade(0f, 0.6f).SetDelay(2.5f).SetLink(failureNotice.gameObject);
-        MinigameFX.Punch(failureNotice.transform, 0.3f);
-    }
-
-    // Texto arriba al centro, debajo del mensaje de alerta (se crea al empezar)
-    private void CreateFailureNotice()
-    {
-        failureNotice = MinigameUI.CreateText("FailureNotice", alertRoot.transform.parent, "", 34, Vector2.zero, new Vector2(1000f, 60f));
-        failureNotice.color = new Color(1f, 0.7f, 0.2f);
-        AnchorToCorner(failureNotice.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -215f));
-        failureNotice.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
-        failureNoticeGroup = failureNotice.gameObject.AddComponent<CanvasGroup>();
-        failureNoticeGroup.alpha = 0f;
-        failureNoticeGroup.blocksRaycasts = false;
-    }
-
     // ---------- Alerta ----------
 
     // La alerta sale cuando alguna zona baja del umbral de peligro (Resources/ShipSystems)
     private void UpdateAlert()
     {
-        string compromised = "";
+        List<string> compromisedSystems = new List<string>();
+        int compromisedCount = 0;
         foreach (ShipSystems.SystemInfo system in ShipState.Config.systems)
         {
             float stability = ShipState.GetStability(system.name);
             if (stability < ShipState.Config.dangerThreshold)
             {
-                compromised += $"{system.name} {Mathf.CeilToInt(stability)}%   ";
+                compromisedCount++;
+                if (compromisedSystems.Count < 2)
+                {
+                    compromisedSystems.Add(system.name);
+                }
             }
         }
 
-        bool showAlert = compromised != "";
+        bool showAlert = compromisedCount > 0;
         SetAlert(showAlert);
 
         if (!showAlert)
@@ -155,24 +132,22 @@ public class StabilityHUD : MonoBehaviour
             return;
         }
 
-        // Debajo, avisos de lo que está pasando por las averías más importantes
-        string warnings = "";
-        if (GetNavigationSeverity() > 0f)
+        float electricitySeverity = ShipState.GetSeverity(ShipZones.Electricity);
+        if (electricitySeverity > 0f)
         {
-            warnings += "\nRUMBO PERDIDO: no se puede calcular la ruta";
+            alertText.text = ShipState.GetStability(ShipZones.Electricity) <= 0f
+                ? "SIN ENERGÍA · REPARA ELECTRICIDAD"
+                : "FALLA ELÉCTRICA · REPÁRALA";
+            return;
         }
 
-        if (!ShipState.HasPower)
+        string systems = string.Join(", ", compromisedSystems);
+        if (compromisedCount > compromisedSystems.Count)
         {
-            warnings += "\nSIN ENERGÍA: las terminales no funcionan";
+            systems += $" +{compromisedCount - compromisedSystems.Count}";
         }
 
-        // Varias zonas críticas: cuenta atrás para explotar (FailureDirector)
-        string title = ShipState.MeltdownTimeLeft >= 0f
-            ? $"¡LA NAVE VA A EXPLOTAR! {Mathf.CeilToInt(ShipState.MeltdownTimeLeft)}"
-            : "¡ESTABILIDAD COMPROMETIDA!";
-
-        alertText.text = $"{title}\n<size=26>{compromised}{warnings}</size>";
+        alertText.text = $"AVERÍA: {systems}";
     }
 
     // Radar y navegación van juntos: si falla cualquiera de los dos se pierde el rumbo
@@ -195,28 +170,26 @@ public class StabilityHUD : MonoBehaviour
 
         if (show)
         {
-            // La viñeta late despacio y el mensaje parpadea
-            alertVolume.weight = 0.4f;
-            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 1f, 0.6f)
-                .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetTarget(alertVolume).SetLink(alertVolume.gameObject);
+            // Una señal tenue y estable evita tapar la vista o distraer al jugador.
+            alertVolume.weight = 0f;
+            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0.25f, 0.4f)
+                .SetEase(Ease.OutSine).SetTarget(alertVolume);
             alertMessage.alpha = 1f;
-            alertMessage.DOFade(0.15f, 0.35f).SetLoops(-1, LoopType.Yoyo).SetLink(alertMessage.gameObject);
         }
         else
         {
-            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0f, 0.4f)
-                .SetTarget(alertVolume).SetLink(alertVolume.gameObject);
+            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0f, 0.25f).SetTarget(alertVolume);
         }
     }
 
-    // Volume global creado por código que solo tiene una viñeta roja.
+    // Volume global creado por código que solo tiene una viñeta ámbar sutil.
     // Su "weight" (de 0 a 1) decide cuánto se ve.
     private void CreateAlertVolume()
     {
         alertProfile = ScriptableObject.CreateInstance<VolumeProfile>();
         Vignette vignette = alertProfile.Add<Vignette>(true);
-        vignette.color.Override(vignetteColor);
-        vignette.intensity.Override(vignetteIntensity);
+        vignette.color.Override(Color.Lerp(vignetteColor, new Color(1f, 0.58f, 0.24f), 0.75f));
+        vignette.intensity.Override(Mathf.Min(vignetteIntensity, 0.2f));
         vignette.smoothness.Override(0.5f);
 
         GameObject volumeObject = new GameObject("AlertVignette");
@@ -403,7 +376,7 @@ public class StabilityHUD : MonoBehaviour
         MinigameUI.CreateImage("Direction", playerMarker, Color.cyan, new Vector2(0f, 11f), new Vector2(4f, 10f));
     }
 
-    // Mensaje arriba al centro (la viñeta roja se crea por código al jugar)
+    // Mensaje breve arriba al centro (la viñeta sutil se crea por código al jugar)
     private void CreateAlert(Transform canvas)
     {
         RectTransform alert = MinigameUI.CreateGroup("Alert", canvas, Vector2.zero, Vector2.zero);
@@ -412,8 +385,8 @@ public class StabilityHUD : MonoBehaviour
 
         // 1000 de ancho para que no pise el panel (izquierda) ni el mapa (derecha),
         // y algo bajado para dejar sitio a la barra del viaje cuando se pilota
-        alertText = MinigameUI.CreateText("Message", alert, "¡ESTABILIDAD COMPROMETIDA!", 44, Vector2.zero, new Vector2(1000f, 110f));
-        alertText.color = new Color(1f, 0.25f, 0.2f);
+        alertText = MinigameUI.CreateText("Message", alert, "AVERÍA DETECTADA", 30, Vector2.zero, new Vector2(1000f, 64f));
+        alertText.color = new Color(1f, 0.72f, 0.45f);
         AnchorToCorner(alertText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -90f));
         alertText.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
         alertMessage = alertText.gameObject.AddComponent<CanvasGroup>();

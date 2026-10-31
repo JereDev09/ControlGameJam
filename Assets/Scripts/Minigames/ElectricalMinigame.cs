@@ -194,13 +194,24 @@ public class ElectricalMinigame : Minigame
     {
         for (int i = 0; i < wires.Length; i++)
         {
-            if (RectTransformUtility.RectangleContainsScreenPoint((RectTransform)wires[i].transform, screenPosition))
+            RectTransform rect = (RectTransform)wires[i].transform;
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screenPosition, null, out Vector2 localPosition) &&
+                ExpandHitArea(rect.rect, 22f, 15f).Contains(localPosition))
             {
                 return i;
             }
         }
 
         return -1;
+    }
+
+    private static Rect ExpandHitArea(Rect rect, float horizontalPadding, float verticalPadding)
+    {
+        rect.xMin -= horizontalPadding;
+        rect.xMax += horizontalPadding;
+        rect.yMin -= verticalPadding;
+        rect.yMax += verticalPadding;
+        return rect;
     }
 
     // Pasa la posición del ratón en pantalla a una posición dentro de la ventana

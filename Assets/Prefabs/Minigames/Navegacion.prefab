@@ -817,7 +817,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 1
     m_LineSpacing: 1
-  m_Text: Clic en puntos vecinos para trazar la ruta hasta el destino
+  m_Text: Haz clic o desliza por puntos vecinos hasta el destino
 --- !u!1 &1307468093839043367
 GameObject:
   m_ObjectHideFlags: 0

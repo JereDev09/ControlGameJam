@@ -5,8 +5,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // Cambia de escena con un fundido a negro: SceneTransition.Load("NombreEscena").
-// Se puede elegir cuánto tarda el fundido de salida y el de entrada, y esperar un poco antes de
-// empezar (por ejemplo, para que coincida con una animación de cámara).
+// Se puede elegir cuánto tarda en fundirse (por ejemplo, lo mismo que una animación de cámara).
 // No cierra PersistentGameplay: descarga solo la escena actual y carga la nueva encima.
 public class SceneTransition : MonoBehaviour
 {
@@ -17,7 +16,7 @@ public class SceneTransition : MonoBehaviour
 
     public static bool IsTransitioning { get; private set; }
 
-    public static void Load(string sceneName, float fadeOutDuration = FadeDuration, float fadeInDuration = FadeDuration, float delay = 0f)
+    public static void Load(string sceneName, float fadeOutDuration = FadeDuration, float fadeInDuration = FadeDuration)
     {
         if (IsTransitioning)
         {
@@ -29,7 +28,7 @@ public class SceneTransition : MonoBehaviour
             CreateInstance();
         }
 
-        instance.StartCoroutine(instance.LoadRoutine(sceneName, fadeOutDuration, fadeInDuration, delay));
+        instance.StartCoroutine(instance.LoadRoutine(sceneName, fadeOutDuration, fadeInDuration));
     }
 
     // Se crea sola la primera vez y sobrevive a los cambios de escena
@@ -47,17 +46,11 @@ public class SceneTransition : MonoBehaviour
         instance.fade.raycastTarget = false;
     }
 
-    private IEnumerator LoadRoutine(string sceneName, float fadeOutDuration, float fadeInDuration, float delay)
+    private IEnumerator LoadRoutine(string sceneName, float fadeOutDuration, float fadeInDuration)
     {
         IsTransitioning = true;
         fade.raycastTarget = true; // bloquea los clics mientras dura
-
-        if (delay > 0f)
-        {
-            yield return new WaitForSeconds(delay);
-        }
-
-        yield return fade.DOFade(1f, fadeOutDuration).SetEase(Ease.InOutSine).WaitForCompletion();
+        yield return fade.DOFade(1f, fadeOutDuration).WaitForCompletion();
 
         if (SceneManager.sceneCount > 1)
         {
@@ -72,10 +65,7 @@ public class SceneTransition : MonoBehaviour
             yield return SceneManager.LoadSceneAsync(sceneName);
         }
 
-        // Un frame más en negro para que la escena nueva arranque (y su primer tirón no se vea)
-        yield return null;
-
-        yield return fade.DOFade(0f, fadeInDuration).SetEase(Ease.InOutSine).WaitForCompletion();
+        yield return fade.DOFade(0f, fadeInDuration).WaitForCompletion();
         fade.raycastTarget = false;
         IsTransitioning = false;
     }

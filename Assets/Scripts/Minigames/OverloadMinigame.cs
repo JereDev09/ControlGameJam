@@ -13,7 +13,7 @@ public class OverloadMinigame : Minigame
     };
 
     [SerializeField] private int sequenceLength = 5;
-    [SerializeField] private float flashTime = 0.5f;
+    [SerializeField] private float flashTime = 0.35f;
 
     [Header("UI")]
     [Tooltip("Hay tantos botones como haya en esta lista (máximo 6, uno por color)")]
@@ -79,12 +79,12 @@ public class OverloadMinigame : Minigame
 
     private IEnumerator PlaySequence()
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.2f);
 
         foreach (int button in sequence)
         {
             LightUp(button, flashTime);
-            yield return new WaitForSeconds(flashTime * 1.4f);
+            yield return new WaitForSeconds(flashTime * 1.15f);
         }
 
         acceptingInput = true;
