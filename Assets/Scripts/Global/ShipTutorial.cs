@@ -193,6 +193,7 @@ public class ShipTutorial : MonoBehaviour
         messageText.text = message;
         messageGroup.DOFade(1f, 0.3f);
         MinigameFX.Punch(messageText.transform.parent, 0.1f);
+        GameAudio.PlaySfx(GameAudio.Either(GameAudio.Sounds.notification, GameAudio.Sounds.menuButton));
     }
 
     private void CreateMessage()

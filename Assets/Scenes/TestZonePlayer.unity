@@ -472,6 +472,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PilotSeat
   prompt: Pilotar la nave
   pilotScene: MinijuegoPrincipal
+  sitDuration: 0.45
 --- !u!23 &1957002508
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -931,6 +932,8 @@ MonoBehaviour:
   gravity: -20
   lookSensitivity: 0.1
   maxLookAngle: 85
+  standUpHeight: 0.5
+  standUpDuration: 1.2
 --- !u!143 &2089838579
 CharacterController:
   m_ObjectHideFlags: 0
@@ -1421,6 +1424,14 @@ PrefabInstance:
       value: ElectricalMinigame
       objectReference: {fileID: 0}
     - target: {fileID: 5870922173535465684, guid: 4b08c60bb7e03fd4eb82f9ef64b45d4b, type: 3}
+      propertyPath: InitialModule.startSizeY.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5870922173535465684, guid: 4b08c60bb7e03fd4eb82f9ef64b45d4b, type: 3}
+      propertyPath: InitialModule.startSizeZ.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5870922173535465684, guid: 4b08c60bb7e03fd4eb82f9ef64b45d4b, type: 3}
       propertyPath: EmissionModule.m_Bursts.Array.data[0].repeatInterval
       value: 0.01
       objectReference: {fileID: 0}
@@ -1674,6 +1685,14 @@ PrefabInstance:
     - target: {fileID: 6527910374701377639, guid: df20b2d4a1cda074e95859fece0e2e94, type: 3}
       propertyPath: m_Name
       value: Circuito
+      objectReference: {fileID: 0}
+    - target: {fileID: 7252876477212543652, guid: df20b2d4a1cda074e95859fece0e2e94, type: 3}
+      propertyPath: InitialModule.startSizeY.minMaxState
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7252876477212543652, guid: df20b2d4a1cda074e95859fece0e2e94, type: 3}
+      propertyPath: InitialModule.startSizeZ.minMaxState
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 7252876477212543652, guid: df20b2d4a1cda074e95859fece0e2e94, type: 3}
       propertyPath: EmissionModule.m_Bursts.Array.data[0].repeatInterval

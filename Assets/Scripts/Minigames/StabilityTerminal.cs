@@ -66,6 +66,7 @@ public class StabilityTerminal : MonoBehaviour, IInteractable
         openedFrame = Time.frameCount;
         rows.Refresh();
         uiRoot.SetActive(true);
+        GameAudio.PlayUi(GameAudio.Sounds.menuButton);
 
         window.DOKill(true);
         window.localScale = Vector3.one * 0.85f;
@@ -111,6 +112,7 @@ public class StabilityTerminal : MonoBehaviour, IInteractable
         openTerminal = null;
         closedFrame = Time.frameCount;
         PlayerControl.Set(player, true);
+        GameAudio.PlayUi(GameAudio.Sounds.menuButton, 0.6f);
 
         window.DOKill(true);
         window.DOScale(0.85f, 0.15f).SetEase(Ease.InBack).SetLink(gameObject).OnComplete(() => uiRoot.SetActive(false));

@@ -245,6 +245,7 @@ public class NavigationMinigame : Minigame
         current = point;
         SetLook(current, PointType.Ship);
         MinigameFX.Punch(target.transform, 0.3f);
+        GameAudio.PlaySfx(GameAudio.Either(GameAudio.Sounds.navigationStep, GameAudio.Sounds.memoryClick), 0.7f, 1.2f);
 
         fuel--;
         fuelText.text = $"Combustible: {fuel}";

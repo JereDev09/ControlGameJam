@@ -206,9 +206,12 @@ public class PressureMinigame : Minigame
         {
             MinigameFX.Shake((RectTransform)button.transform);
             MinigameFX.Flash(button.image, Color.red);
+            GameAudio.PlaySfx(GameAudio.Sounds.valveClick, 1f, 0.6f);
             RemoveTime(mistakePenalty);
             return;
         }
+
+        GameAudio.PlaySfx(GameAudio.Sounds.valveClick, 1f, Random.Range(0.95f, 1.1f));
 
         wheelHint?.Kill();
         valveOpen[valve] = !valveOpen[valve];

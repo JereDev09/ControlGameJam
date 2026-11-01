@@ -101,6 +101,11 @@ public abstract class Minigame : MonoBehaviour, IInteractable
     {
     }
 
+    // Se llama cuando se deja de jugar (completado, fallado o cerrado): para aquí los sonidos en bucle
+    protected virtual void StopMinigame()
+    {
+    }
+
     private void Awake()
     {
         if (uiRoot == null)
@@ -231,6 +236,7 @@ public abstract class Minigame : MonoBehaviour, IInteractable
 
         isPlaying = false;
         StopAllCoroutines();
+        StopMinigame();
         StartCoroutine(ShowResultAndClose(success));
     }
 
@@ -249,10 +255,12 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         if (success)
         {
             MinigameFX.Confetti(window);
+            GameAudio.PlaySfx(GameAudio.Sounds.minigameCompleted);
         }
         else
         {
             MinigameFX.Shake(window, 25f);
+            GameAudio.PlaySfx(GameAudio.Sounds.minigameFailed);
         }
 
         Debug.Log($"{title}: {(success ? "completado" : "fallado")}", this);
@@ -297,6 +305,8 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         }
 
         StopAllCoroutines();
+        StopMinigame();
+        GameAudio.PlayUi(GameAudio.Sounds.menuButton, 0.6f);
         CloseWindow();
     }
 
@@ -374,6 +384,7 @@ public abstract class Minigame : MonoBehaviour, IInteractable
         }
 
         StopAllCoroutines();
+        StopMinigame();
         isOpen = false;
         isPlaying = false;
         if (openMinigame == this)

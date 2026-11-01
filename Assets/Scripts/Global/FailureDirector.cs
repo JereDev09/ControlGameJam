@@ -306,9 +306,17 @@ public class FailureDirector : MonoBehaviour
         if (ShipState.MeltdownTimeLeft < 0f)
         {
             ShipState.MeltdownTimeLeft = config.meltdownSeconds;
+            GameAudio.PlaySfx(GameAudio.Sounds.meltdownAlarm);
         }
 
+        // La alarma suena cada segundo de la cuenta atrás
+        int secondsBefore = Mathf.CeilToInt(ShipState.MeltdownTimeLeft);
         ShipState.MeltdownTimeLeft -= Time.deltaTime;
+        if (Mathf.CeilToInt(ShipState.MeltdownTimeLeft) < secondsBefore && ShipState.MeltdownTimeLeft > 0f)
+        {
+            GameAudio.PlaySfx(GameAudio.Sounds.meltdownAlarm);
+        }
+
         if (ShipState.MeltdownTimeLeft <= 0f)
         {
             ShipState.MeltdownTimeLeft = -1f;

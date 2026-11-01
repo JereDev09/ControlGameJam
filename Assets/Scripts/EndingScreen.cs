@@ -11,6 +11,8 @@ public class EndingScreen : MonoBehaviour
     [SerializeField] private float duration = 8f;
     [Tooltip("Escena del menú principal (tiene que estar en la lista de escenas de la build)")]
     [SerializeField] private string menuScene = "MenuPrincipal";
+    [Tooltip("Música de esta escena. Vacío = sigue la que estuviera sonando (al perder, la explosión ya la ha cortado)")]
+    [SerializeField] private AudioClip music;
 
     [Header("UI (la crea la herramienta)")]
     [SerializeField] private Image image;
@@ -20,6 +22,14 @@ public class EndingScreen : MonoBehaviour
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        if (music != null)
+        {
+            GameAudio.PlayMusic(music);
+        }
+
+        GameAudio.SetMusicMode(GameAudio.MusicMode.Normal);
+        GameAudio.PlayAmbience(null);
 
         // La imagen se acerca muy despacio y los textos aparecen un poco después
         image.transform.localScale = Vector3.one;

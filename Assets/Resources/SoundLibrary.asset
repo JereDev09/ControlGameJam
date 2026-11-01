@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 454fe23c718c7b546ab77e6eae1734c5, type: 3}
+  m_Name: SoundLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::SoundLibrary
+  mixer: {fileID: 24100000, guid: bab9ddc972d89fe1c8fef64ee9e6e62b, type: 2}
+  gameMusic: {fileID: 8300000, guid: 16c657392dcc8ad4f8e5e407904163c3, type: 3}
+  interiorAmbience: {fileID: 8300000, guid: 62df363c00d1de54f8d1979c43a653e5, type: 3}
+  shipEngineLoop: {fileID: 8300000, guid: 913aa1e36e0123e48a6583d53a165028, type: 3}
+  asteroidImpact: {fileID: 8300000, guid: 139a3fa8377220449b29bd71327e6a9e, type: 3}
+  shipExplosion: {fileID: 8300000, guid: f65fe44e7ed18b244a88f0dbe4c36319, type: 3}
+  failureWarning: {fileID: 8300000, guid: 2dd9b62fbf83d7441a90338dcc1505d4, type: 3}
+  enemyDetected: {fileID: 8300000, guid: 780184faace48aa4489facab000da740, type: 3}
+  shot: {fileID: 8300000, guid: 259c5c4bdac052145b208db1af8a12bd, type: 3}
+  footstep: {fileID: 8300000, guid: 9fc8b64907318af438e404c1e2bf29d4, type: 3}
+  minigameCompleted: {fileID: 8300000, guid: 52819adcae2f17f41ba2aefd99968a22, type: 3}
+  minigameFailed: {fileID: 8300000, guid: 3c838e911b53969468cf6ecff8ac7004, type: 3}
+  wireConnected: {fileID: 8300000, guid: 4ba9126af5e052b449af75e1e49c9920, type: 3}
+  memoryClick: {fileID: 8300000, guid: 7bcf64a28b01833409c9798969968b8b, type: 3}
+  valveClick: {fileID: 8300000, guid: 6dd5e7f5c85f3c54988bd403ea4514d2, type: 3}
+  partCollected: {fileID: 8300000, guid: ebe93ec8bbcd34c42857feb2cf2fe51f, type: 3}
+  radioStatic: {fileID: 8300000, guid: 56dce330d82f2dc498e0012210fc51ce, type: 3}
+  menuButton: {fileID: 8300000, guid: c61c8b4734b25c04b8640df89caf7a8e, type: 3}
+  overloadExplosion: {fileID: 0}
+  meltdownAlarm: {fileID: 0}
+  transitionWhoosh: {fileID: 0}
+  notification: {fileID: 0}
+  circuitRotate: {fileID: 0}
+  navigationStep: {fileID: 0}
+  radarTuned: {fileID: 0}

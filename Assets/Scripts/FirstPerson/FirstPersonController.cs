@@ -26,9 +26,14 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private float standUpHeight = 0.5f;
     [SerializeField] private float standUpDuration = 1.2f;
 
+    [Header("Pasos")]
+    [Tooltip("Metros entre un paso y otro (al correr se recorren más rápido, así que suenan más seguidos)")]
+    [SerializeField] private float stepDistance = 2f;
+
     private CharacterController characterController;
     private float verticalVelocity;
     private float cameraPitch;
+    private float distanceSinceStep;
 
     // Acciones definidas en Assets/InputSystem_Actions (mapa "Player")
     private InputAction moveAction;
@@ -57,6 +62,10 @@ public class FirstPersonController : MonoBehaviour
         Vector3 cameraPosition = cameraTransform.localPosition;
         cameraTransform.localPosition = cameraPosition + Vector3.down * standUpHeight;
         cameraTransform.DOLocalMove(cameraPosition, standUpDuration).SetEase(Ease.OutCubic).SetLink(gameObject);
+
+        // Dentro de la nave la música sigue, pero más baja y apagada (solo los graves), con su ambiente
+        GameAudio.PlayMusic(GameAudio.Sounds.gameMusic, GameAudio.MusicMode.Inside);
+        GameAudio.PlayAmbience(GameAudio.Sounds.interiorAmbience);
     }
 
     private void OnEnable()
@@ -119,5 +128,23 @@ public class FirstPersonController : MonoBehaviour
         velocity.y = verticalVelocity;
 
         characterController.Move(velocity * Time.deltaTime);
+        UpdateFootsteps(speed * moveInput.magnitude);
+    }
+
+    // Suena un paso cada stepDistance metros andados por el suelo (con el tono algo cambiado
+    // cada vez, para que no suenen todos iguales)
+    private void UpdateFootsteps(float horizontalSpeed)
+    {
+        if (!characterController.isGrounded || horizontalSpeed < 0.1f)
+        {
+            return;
+        }
+
+        distanceSinceStep += horizontalSpeed * Time.deltaTime;
+        if (distanceSinceStep >= stepDistance)
+        {
+            distanceSinceStep = 0f;
+            GameAudio.PlaySfx(GameAudio.Sounds.footstep, 0.6f, Random.Range(0.85f, 1.15f));
+        }
     }
 }

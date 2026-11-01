@@ -8,8 +8,9 @@ public static class MinigameFX
     // Pequeño "salto" de tamaño, para clics y aciertos
     public static void Punch(Transform target, float strength = 0.15f)
     {
+        // Relativo a su escala, así también funciona con objetos volteados (escala -1)
         target.DOKill(true);
-        target.DOPunchScale(Vector3.one * strength, 0.25f, 8, 0.8f).SetLink(target.gameObject);
+        target.DOPunchScale(target.localScale * strength, 0.25f, 8, 0.8f).SetLink(target.gameObject);
     }
 
     // Sacudida, para errores
@@ -28,10 +29,10 @@ public static class MinigameFX
         graphic.DOColor(originalColor, duration).SetLink(graphic.gameObject);
     }
 
-    // Late sin parar. Guarda el Tween que devuelve para pararlo con Kill()
+    // Late sin parar (relativo a su escala). Guarda el Tween que devuelve para pararlo con Kill()
     public static Tween Pulse(Transform target, float scale = 1.15f, float duration = 0.4f)
     {
-        return target.DOScale(scale, duration).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine).SetLink(target.gameObject);
+        return target.DOScale(target.localScale * scale, duration).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine).SetLink(target.gameObject);
     }
 
     // Hace crecer una línea desde su inicio hasta su largo actual

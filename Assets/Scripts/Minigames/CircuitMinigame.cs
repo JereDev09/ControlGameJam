@@ -190,6 +190,7 @@ public class CircuitMinigame : Minigame
         RectTransform visual = pieceVisuals[index];
         visual.DOKill(true);
         visual.DOLocalRotate(new Vector3(0f, 0f, -90f), 0.15f, RotateMode.LocalAxisAdd).SetEase(Ease.OutBack);
+        GameAudio.PlaySfx(GameAudio.Either(GameAudio.Sounds.circuitRotate, GameAudio.Sounds.memoryClick), 0.7f, Random.Range(0.9f, 1.1f));
 
         RefreshPower(true);
 

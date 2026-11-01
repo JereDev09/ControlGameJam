@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 // Ajustes de las zonas de la nave. Vive en Assets/Resources/ShipSystems.
 // - Zonas y mapa: se actualizan solos al guardar la escena de primera persona
@@ -37,19 +38,17 @@ public class ShipSystems : ScriptableObject
     // En las curvas, el eje X es el progreso del viaje: 0 = salida, 1 = destino
     [Header("Dificultad (curvas: X = progreso del viaje, de 0 a 1)")]
     [Tooltip("Segundos de calma al terminar el tutorial, antes de la primera avería normal")]
-    public float firstFailureDelay = 5f;
-    [Tooltip("Estabilidad que pierde de golpe una zona en el momento de averiarse")]
-    [Range(0f, 100f)] public float failureInitialDrop = 30f;
+    public float firstFailureDelay = 6f;
     [Tooltip("Cuántas zonas pueden estar averiadas a la vez")]
-    public AnimationCurve maxFailuresAtOnce = AnimationCurve.Linear(0f, 2f, 1f, 5f);
+    public AnimationCurve maxFailuresAtOnce = AnimationCurve.Linear(0f, 2f, 1f, 4f);
     [Tooltip("Segundos entre una avería y la siguiente")]
-    public AnimationCurve secondsBetweenFailures = AnimationCurve.Linear(0f, 14f, 1f, 6f);
+    public AnimationCurve secondsBetweenFailures = AnimationCurve.Linear(0f, 15f, 1f, 7f);
     [Tooltip("Multiplica lo rápido que pierden estabilidad las zonas averiadas")]
-    public AnimationCurve lossMultiplier = AnimationCurve.Linear(0f, 7f, 1f, 11f);
+    public AnimationCurve lossMultiplier = AnimationCurve.Linear(0f, 6f, 1f, 10f);
     [Tooltip("Con varias zonas averiadas, todas menos la primera pierden estabilidad multiplicada por esto")]
     [Range(0f, 1f)] public float othersLossMultiplier = 0.5f;
     [Tooltip("A partir de este progreso del viaje ya no hay piedad: todas las averías bajan a velocidad normal")]
-    [Range(0f, 1f)] public float noMercyProgress = 0.85f;
+    [Range(0f, 1f)] public float noMercyProgress = 0.9f;
 
     [Header("Tutorial (al empezar una partida)")]
     public bool tutorialEnabled = true;
@@ -57,9 +56,11 @@ public class ShipSystems : ScriptableObject
     public float tutorialFirstFailureDelay = 14f;
     [Tooltip("Segundos pilotando entre una avería del tutorial y la siguiente")]
     public float tutorialStepDelay = 16f;
-    [Tooltip("Estabilidad a la que baja de golpe cada avería del tutorial, para que se note su efecto. " +
-             "Durante el tutorial no baja más ni hace daño a la nave")]
+    [Tooltip("Estabilidad hasta la que baja cada avería del tutorial, para que se note su efecto. " +
+             "Ahí se queda: durante el tutorial no baja más ni hace daño a la nave")]
     [Range(0f, 100f)] public float tutorialBreakStability = 10f;
+    [Tooltip("Lo rápido (% por segundo) que baja la avería del tutorial hasta ese nivel")]
+    public float tutorialDropSpeed = 20f;
     [Tooltip("Cuántas zonas al azar se averían, una a una, después de la electricidad")]
     public int tutorialExtraFailures = 1;
     [Tooltip("Mientras pilotas con una avería. {zone} = nombre de la zona, {key} = tecla para entrar en la nave")]
@@ -80,10 +81,20 @@ public class ShipSystems : ScriptableObject
     public Vector2 overloadExplosionInterval = new Vector2(12f, 4f);
 
     [Header("Derrota")]
-    [Tooltip("Si este número de zonas llega a 0% a la vez, la nave explota")]
-    public int zonesAtZeroToLose = 3;
+    [Tooltip("Por debajo de esta estabilidad una zona cuenta como crítica")]
+    [Range(0f, 100f)] public float criticalStability = 10f;
+    [Tooltip("Si este número de zonas está en estado crítico a la vez, empieza la cuenta atrás para explotar")]
+    [FormerlySerializedAs("zonesAtZeroToLose")] public int criticalZonesToLose = 3;
+    [Tooltip("Segundos de aviso antes de explotar. Si reparas alguna zona a tiempo, se cancela")]
+    public float meltdownSeconds = 6f;
     [Tooltip("Escena donde se ve explotar la nave si estás dentro cuando ocurre")]
     public string pilotingScene = "MinijuegoPrincipal";
-    [Tooltip("Escena a la que se vuelve después de perder")]
+    [Tooltip("Escena con la imagen de la derrota, después de ver explotar la nave")]
+    public string gameOverScene = "Derrota";
+    [Tooltip("Escena del menú principal (se usa si falta alguna de las otras)")]
     public string menuScene = "MenuPrincipal";
+
+    [Header("Final")]
+    [Tooltip("Escena que se carga al llegar al destino (con la imagen del final)")]
+    public string endingScene = "Final";
 }

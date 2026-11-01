@@ -33,6 +33,12 @@ public class PauseMenu : MonoBehaviour
         menuButton.onClick.AddListener(GoToMenu);
         quitButton.onClick.AddListener(Quit);
         uiRoot.SetActive(false);
+
+        // Todos los botones suenan al pulsarlos
+        foreach (Button button in new[] { resumeButton, menuButton, quitButton })
+        {
+            button.onClick.AddListener(() => GameAudio.PlayUi(GameAudio.Sounds.menuButton));
+        }
     }
 
     private void Update()
@@ -65,6 +71,9 @@ public class PauseMenu : MonoBehaviour
         IsPaused = true;
         Time.timeScale = 0f;
 
+        // Se paran los efectos y el ambiente (la música y los botones siguen sonando, ver GameAudio)
+        AudioListener.pause = true;
+
         // Se libera el ratón para usar los botones (y se recuerda cómo estaba)
         previousLockState = Cursor.lockState;
         previousCursorVisible = Cursor.visible;
@@ -84,6 +93,7 @@ public class PauseMenu : MonoBehaviour
     {
         IsPaused = false;
         Time.timeScale = 1f;
+        AudioListener.pause = false;
         Cursor.lockState = previousLockState;
         Cursor.visible = previousCursorVisible;
         uiRoot.SetActive(false);
@@ -110,6 +120,7 @@ public class PauseMenu : MonoBehaviour
     private static void ResetOnPlay()
     {
         IsPaused = false;
+        AudioListener.pause = false;
     }
 
     // Solo la usa la herramienta del editor

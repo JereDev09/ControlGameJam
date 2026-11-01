@@ -35,6 +35,10 @@ public class MainMenu : MonoBehaviour
         backButton.onClick.AddListener(() => ShowCredits(false));
         creditsPanel.gameObject.SetActive(false);
 
+        // La música del juego, más baja
+        GameAudio.PlayMusic(GameAudio.Sounds.gameMusic, GameAudio.MusicMode.Menu);
+        GameAudio.PlayAmbience(null);
+
         PlayIntro();
         FloatShip();
     }
@@ -76,6 +80,7 @@ public class MainMenu : MonoBehaviour
     {
         mainPanel.interactable = false;
         MinigameFX.Punch(playButton.transform);
+        GameAudio.PlayUi(GameAudio.Sounds.menuButton);
         ShipState.Reset(); // partida nueva
         SceneTransition.Load(gameScene, 0.8f, 1f);
     }
@@ -84,6 +89,7 @@ public class MainMenu : MonoBehaviour
     {
         CanvasGroup hide = show ? mainPanel : creditsPanel;
         CanvasGroup appear = show ? creditsPanel : mainPanel;
+        GameAudio.PlayUi(GameAudio.Sounds.menuButton);
 
         hide.interactable = false;
         hide.DOFade(0f, 0.25f).SetLink(gameObject).OnComplete(() => hide.gameObject.SetActive(false));
@@ -115,7 +121,7 @@ public class MainMenu : MonoBehaviour
         creditsPanel = credits.gameObject.AddComponent<CanvasGroup>();
         MinigameUI.CreateText("CreditsTitle", credits.transform, "CRÉDITOS", 48, new Vector2(0f, 240f), new Vector2(800f, 70f));
         MinigameUI.CreateText("CreditsText", credits.transform,
-            "Programación\nNombre\n\nArte\nNombre\n\nDiseño\nNombre", 30, new Vector2(0f, 10f), new Vector2(800f, 360f));
+            "Programación\nNombre\n\nArte\nNombre\n\nDiseño\nNombre\n\nSFX and Audio by Team Delay (teamdelay.ca)", 30, new Vector2(0f, 10f), new Vector2(800f, 360f));
         backButton = MinigameUI.CreateButton("BackButton", credits.transform, "VOLVER", buttonColor, new Vector2(0f, -240f), new Vector2(300f, 70f));
         credits.gameObject.SetActive(false);
 

@@ -92,7 +92,7 @@ public class OverloadMinigame : Minigame
         MinigameFX.Punch(statusText.transform, 0.3f);
     }
 
-    // Enciende el botón de golpe y se va apagando poco a poco
+    // Enciende el botón de golpe y se va apagando poco a poco. Cada botón suena con su propio tono.
     private void LightUp(int button, float duration)
     {
         Image image = buttons[button].image;
@@ -100,6 +100,7 @@ public class OverloadMinigame : Minigame
         image.color = GetColor(button);
         image.DOColor(DimColor(button), duration).SetEase(Ease.InQuad);
         MinigameFX.Punch(buttons[button].transform, 0.12f);
+        GameAudio.PlaySfx(GameAudio.Sounds.memoryClick, 1f, 0.8f + button * 0.15f);
     }
 
     private void PressButton(int button)

@@ -15628,6 +15628,7 @@ MonoBehaviour:
   movementCamera: {fileID: 330585545}
   screenPadding: 0.08
   speedMultiplier: 1
+  invulnerableTime: 0.8
   explosionParticles: {fileID: 352387275}
   cameraShakeStrength: 0.4
   onDestroyed:
@@ -15672,6 +15673,7 @@ MonoBehaviour:
   interiorScene: TestZonePlayer
   closeUp: 0.75
   zoomDuration: 0.65
+  pullBackDuration: 1.2
   ship: {fileID: 0}
   asteroidSpawner: {fileID: 0}
   shipCamera: {fileID: 0}
@@ -15694,6 +15696,7 @@ MonoBehaviour:
   smoke: {fileID: 1166527115}
   stallSpeed: 0.15
   shakeStrength: 0.3
+  blackoutMaxAlpha: 0.16
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
@@ -15845,7 +15848,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 991158680}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0.00000037253}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -15853,7 +15856,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 350, y: -5}
+  m_AnchoredPosition: {x: 350, y: -0.0000019073}
   m_SizeDelta: {x: 26, y: 26}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &991158682
@@ -15876,7 +15879,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 284fba27b35c64440995946c16e44cd2, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -20757,6 +20760,7 @@ MonoBehaviour:
   minSimulationSpeed: 0.2
   responseSpeed: 7
   boostEmissionMultiplier: 1.7
+  opacity: 0.3
 --- !u!1 &1152764595
 GameObject:
   m_ObjectHideFlags: 0
@@ -20801,6 +20805,10 @@ MonoBehaviour:
   rotationSpeedRange: {x: 12, y: 40}
   shipHitRadius: 0.55
   damagePerHit: 25
+  warningStartApproach: 0.65
+  slowFlashFrequency: 2
+  fastFlashFrequency: 12
+  missFadeDuration: 0.45
 --- !u!4 &1152764597
 Transform:
   m_ObjectHideFlags: 0

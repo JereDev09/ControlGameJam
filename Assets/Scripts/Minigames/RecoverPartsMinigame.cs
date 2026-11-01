@@ -152,6 +152,8 @@ public class RecoverPartsMinigame : Minigame
     {
         collected++;
         UpdateCounter();
+        // Cada pieza suena más aguda que la anterior
+        GameAudio.PlaySfx(GameAudio.Sounds.partCollected, 1f, 1f + (collected - 1) * 0.15f);
         MinigameFX.Punch(counterText.transform, 0.3f);
         MinigameFX.Punch(robot, 0.25f);
         MinigameFX.Burst(area, piece.image.rectTransform.anchoredPosition, Color.green);

@@ -25,6 +25,7 @@ public class RadarMinigame : Minigame
     private float targetFrequency;
     private float holdTimer;
     private bool wasTuned;
+    private AudioSource staticSound;   // estática de fondo: suena menos cuanto mejor es la señal
 
     private void Reset()
     {
@@ -67,6 +68,21 @@ public class RadarMinigame : Minigame
         wasTuned = false;
         frequencySlider.value = 0f;
         MinigameUI.SetBar(holdFill, 0f);
+
+        if (staticSound == null)
+        {
+            staticSound = GameAudio.CreateLoop(gameObject, GameAudio.Sounds.radioStatic);
+        }
+
+        staticSound.Play();
+    }
+
+    protected override void StopMinigame()
+    {
+        if (staticSound != null)
+        {
+            staticSound.Stop();
+        }
     }
 
     protected override void UpdateMinigame()
@@ -88,6 +104,8 @@ public class RadarMinigame : Minigame
             signalBars[i].color = Color.Lerp(Color.red, Color.green, signalQuality);
         }
 
+        staticSound.volume = Mathf.Lerp(1f, 0.15f, signalQuality);
+
         knob.localRotation = Quaternion.Euler(0f, 0f, 135f - frequencySlider.value * 270f);
         frequencyText.text = $"Frecuencia: {Mathf.Lerp(88f, 108f, frequencySlider.value):0.0} MHz";
 
@@ -97,6 +115,7 @@ public class RadarMinigame : Minigame
         {
             MinigameFX.Flash(screen, TunedFlashColor);
             MinigameFX.Punch(frequencyText.transform, 0.2f);
+            GameAudio.PlaySfx(GameAudio.Sounds.radarTuned);
         }
 
         wasTuned = tuned;

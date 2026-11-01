@@ -170,6 +170,7 @@ public class EnemyShipEncounter : MonoBehaviour
         };
         enemies.Add(enemy);
         encounterTimer = Random.Range(encounterInterval.x, encounterInterval.y);
+        GameAudio.PlaySfx(GameAudio.Sounds.enemyDetected);
 
         if (!ShipState.WeaponsUnlocked)
         {
@@ -249,6 +250,7 @@ public class EnemyShipEncounter : MonoBehaviour
         Vector3 direction = (target.gameObject.transform.position - origin).normalized;
         CreateProjectile(origin, direction, playerProjectileSpeed, playerProjectileDamage, false, target);
         playerFireTimer = playerFireInterval;
+        GameAudio.PlaySfx(GameAudio.Sounds.shot, 0.7f, Random.Range(1f, 1.1f));
     }
 
     private void FireEnemyWeapon(Enemy enemy)
@@ -256,6 +258,8 @@ public class EnemyShipEncounter : MonoBehaviour
         Vector3 origin = enemy.gameObject.transform.position;
         Vector3 direction = (ship.transform.position - origin).normalized;
         CreateProjectile(origin, direction, enemyProjectileSpeed, enemyDamage, true, null);
+        // Los disparos enemigos suenan más graves y bajos, para distinguirlos de los tuyos
+        GameAudio.PlaySfx(GameAudio.Sounds.shot, 0.5f, Random.Range(0.7f, 0.8f));
     }
 
     private void CreateProjectile(
@@ -369,6 +373,8 @@ public class EnemyShipEncounter : MonoBehaviour
             return;
         }
 
+        // Enemigo destruido: la explosión de la nave, más aguda y baja
+        GameAudio.PlaySfx(GameAudio.Sounds.shipExplosion, 0.5f, 1.4f);
         enemies.Remove(enemy);
         Destroy(enemy.gameObject);
         ScheduleNextEncounter();

@@ -6,7 +6,7 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 // HUD de la nave, para las dos escenas (pilotar y primera persona):
-// - Alerta: si alguna zona baja del umbral, viñeta tenue y un aviso breve arriba.
+// - Alerta: si alguna zona baja del umbral, viñeta roja latiendo y un aviso breve arriba.
 // - Minimapa redondo (arriba a la derecha, solo en primera persona): gira con tu vista; las zonas
 //   lejanas se quedan pegadas al borde apuntando hacia ellas, y las que fallan laten en rojo.
 // - Panel con la estabilidad de cada zona (opcional, solo en primera persona; también está la terminal).
@@ -20,9 +20,9 @@ public class StabilityHUD : MonoBehaviour
     [Tooltip("Metros del mundo que se ven desde el centro del mapa hasta el borde (menos = más zoom)")]
     [SerializeField] private float mapVisibleRadius = 8f;
 
-    [Header("Viñeta sutil de la alerta")]
-    [SerializeField] private Color vignetteColor = new Color(0.75f, 0.38f, 0.12f);
-    [SerializeField, Range(0f, 1f)] private float vignetteIntensity = 0.2f;
+    [Header("Viñeta roja de la alerta")]
+    [SerializeField] private Color vignetteColor = new Color(0.9f, 0f, 0f);
+    [SerializeField, Range(0f, 1f)] private float vignetteIntensity = 0.55f;
 
     [Header("UI (la crea la herramienta)")]
     [Tooltip("Fila desactivada que se copia para cada zona. Sus hijos deben llamarse Name, Bar (con Fill dentro) y Percent")]
@@ -58,6 +58,8 @@ public class StabilityHUD : MonoBehaviour
     private Volume alertVolume;
     private VolumeProfile alertProfile;
     private bool isAlertShown;
+    private Text failureNotice;
+    private CanvasGroup failureNoticeGroup;
 
     private void Start()
     {
@@ -68,6 +70,8 @@ public class StabilityHUD : MonoBehaviour
         alertRoot.SetActive(false);
         CreateAlertVolume();
         CreateMarkers();
+        CreateFailureNotice();
+        ShipState.SystemBroke += OnSystemBroke;
 
         // Si hay jugador estamos en primera persona; si no, pilotando (ahí solo sale la alerta)
         FirstPersonController firstPerson = FindFirstObjectByType<FirstPersonController>();
@@ -97,11 +101,37 @@ public class StabilityHUD : MonoBehaviour
 
     private void OnDestroy()
     {
+        ShipState.SystemBroke -= OnSystemBroke;
+
         // El perfil de la viñeta se creó por código, así que hay que borrarlo a mano
         if (alertProfile != null)
         {
             Destroy(alertProfile);
         }
+    }
+
+    // ---------- Aviso de avería nueva ----------
+
+    // Cuando una zona se avería sale "¡AVERÍA EN ...!" un par de segundos
+    private void OnSystemBroke(string systemName)
+    {
+        failureNotice.text = $"¡AVERÍA EN {systemName.ToUpper()}!";
+        failureNoticeGroup.DOKill();
+        failureNoticeGroup.alpha = 1f;
+        failureNoticeGroup.DOFade(0f, 0.6f).SetDelay(2.5f).SetLink(failureNotice.gameObject);
+        MinigameFX.Punch(failureNotice.transform, 0.3f);
+    }
+
+    // Texto arriba al centro, debajo del mensaje de alerta (se crea al empezar)
+    private void CreateFailureNotice()
+    {
+        failureNotice = MinigameUI.CreateText("FailureNotice", alertRoot.transform.parent, "", 34, Vector2.zero, new Vector2(1000f, 60f));
+        failureNotice.color = new Color(1f, 0.7f, 0.2f);
+        AnchorToCorner(failureNotice.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -215f));
+        failureNotice.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(2f, -2f);
+        failureNoticeGroup = failureNotice.gameObject.AddComponent<CanvasGroup>();
+        failureNoticeGroup.alpha = 0f;
+        failureNoticeGroup.blocksRaycasts = false;
     }
 
     // ---------- Alerta ----------
@@ -129,6 +159,13 @@ public class StabilityHUD : MonoBehaviour
 
         if (!showAlert)
         {
+            return;
+        }
+
+        // Varias zonas críticas: cuenta atrás para explotar (FailureDirector). Tiene prioridad sobre todo
+        if (ShipState.MeltdownTimeLeft >= 0f)
+        {
+            alertText.text = $"¡LA NAVE VA A EXPLOTAR! {Mathf.CeilToInt(ShipState.MeltdownTimeLeft)}";
             return;
         }
 
@@ -170,26 +207,27 @@ public class StabilityHUD : MonoBehaviour
 
         if (show)
         {
-            // Una señal tenue y estable evita tapar la vista o distraer al jugador.
-            alertVolume.weight = 0f;
-            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0.25f, 0.4f)
-                .SetEase(Ease.OutSine).SetTarget(alertVolume);
+            // El marco rojo late despacio; el mensaje se queda fijo para no distraer
+            alertVolume.weight = 0.4f;
+            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 1f, 0.6f)
+                .SetEase(Ease.InOutSine).SetLoops(-1, LoopType.Yoyo).SetTarget(alertVolume).SetLink(alertVolume.gameObject);
             alertMessage.alpha = 1f;
         }
         else
         {
-            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0f, 0.25f).SetTarget(alertVolume);
+            DOTween.To(() => alertVolume.weight, value => alertVolume.weight = value, 0f, 0.25f)
+                .SetTarget(alertVolume).SetLink(alertVolume.gameObject);
         }
     }
 
-    // Volume global creado por código que solo tiene una viñeta ámbar sutil.
+    // Volume global creado por código que solo tiene una viñeta roja.
     // Su "weight" (de 0 a 1) decide cuánto se ve.
     private void CreateAlertVolume()
     {
         alertProfile = ScriptableObject.CreateInstance<VolumeProfile>();
         Vignette vignette = alertProfile.Add<Vignette>(true);
-        vignette.color.Override(Color.Lerp(vignetteColor, new Color(1f, 0.58f, 0.24f), 0.75f));
-        vignette.intensity.Override(Mathf.Min(vignetteIntensity, 0.2f));
+        vignette.color.Override(vignetteColor);
+        vignette.intensity.Override(vignetteIntensity);
         vignette.smoothness.Override(0.5f);
 
         GameObject volumeObject = new GameObject("AlertVignette");

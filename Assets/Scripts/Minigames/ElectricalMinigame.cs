@@ -5,11 +5,16 @@ using UnityEngine.UI;
 
 // Falla eléctrica: arrastra cada cable de la izquierda hasta su pareja de la derecha (el del mismo color).
 // Las parejas van por número: LeftWire1 con RightWire1, LeftWire2 con RightWire2...
-// Los cables no se tiñen (cada uno usa su sprite); en cada partida se desordena el sitio de los de la derecha.
+// Los cables no se tiñen: sin conectar usan el sprite que tenga su botón, y al arrastrarlos y
+// conectarlos cambian a su sprite de "conectado" (que también se usa para la línea).
+// En cada partida se desordena el sitio de los de la derecha.
 // Mientras arrastras, el cable se estira siguiendo el ratón. Si lo sueltas en el equivocado, falla.
 public class ElectricalMinigame : Minigame
 {
-    [Tooltip("Color de la línea que se dibuja para cada pareja de cables (en el mismo orden). Ajústalo a tus sprites")]
+    [Tooltip("Sprite de cada pareja (en el mismo orden) mientras se conecta y ya conectada. También se usa para la línea. " +
+             "Si se deja vacío, el cable no cambia y la línea usa el color de lineColors")]
+    [SerializeField] private Sprite[] connectedSprites;
+    [Tooltip("Color de la línea de cada pareja cuando no tiene sprite de conectado")]
     [SerializeField] private Color[] lineColors =
     {
         Color.red, new Color(0.2f, 0.4f, 1f), Color.yellow, Color.green, Color.magenta, Color.cyan
@@ -23,6 +28,10 @@ public class ElectricalMinigame : Minigame
     [SerializeField] private Image lineTemplate;
 
     private Vector2[] rightPositions;   // sitios originales de los cables de la derecha
+    private Sprite[] leftIdleSprites;   // sprite de cada cable sin conectar (el que tiene el botón)
+    private Sprite[] rightIdleSprites;
+    private Vector3[] leftScales;       // escala de cada cable en el prefab (por ejemplo -1 para darle la vuelta)
+    private Vector3[] rightScales;
     private bool[] leftConnected;
     private bool[] rightConnected;
     private int connectedCount;
@@ -64,11 +73,24 @@ public class ElectricalMinigame : Minigame
 
     protected override void SetupMinigame()
     {
-        // Se guardan los sitios de los cables de la derecha para desordenarlos en cada partida
+        // Se guardan los sitios de los cables de la derecha (para desordenarlos en cada partida),
+        // el sprite que tiene cada cable sin conectar (para volver a él) y su escala
         rightPositions = new Vector2[rightWires.Length];
+        leftIdleSprites = new Sprite[leftWires.Length];
+        rightIdleSprites = new Sprite[rightWires.Length];
+        leftScales = new Vector3[leftWires.Length];
+        rightScales = new Vector3[rightWires.Length];
         for (int i = 0; i < rightWires.Length; i++)
         {
             rightPositions[i] = GetPosition(rightWires[i]);
+            rightIdleSprites[i] = rightWires[i].image.sprite;
+            rightScales[i] = rightWires[i].transform.localScale;
+        }
+
+        for (int i = 0; i < leftWires.Length; i++)
+        {
+            leftIdleSprites[i] = leftWires[i].image.sprite;
+            leftScales[i] = leftWires[i].transform.localScale;
         }
     }
 
@@ -90,16 +112,32 @@ public class ElectricalMinigame : Minigame
 
         for (int i = 0; i < wireCount; i++)
         {
-            ResetWire(leftWires[i]);
-            ResetWire(rightWires[i]);
+            ResetWire(leftWires[i], leftIdleSprites[i], leftScales[i]);
+            ResetWire(rightWires[i], rightIdleSprites[i], rightScales[i]);
             ((RectTransform)rightWires[i].transform).anchoredPosition = rightPositions[order[i]];
         }
     }
 
-    private static void ResetWire(Button wire)
+    private static void ResetWire(Button wire, Sprite idleSprite, Vector3 scale)
     {
         wire.transform.DOKill(true);
-        wire.transform.localScale = Vector3.one;
+        wire.transform.localScale = scale;
+        wire.image.sprite = idleSprite;
+    }
+
+    // Pone el cable en su versión de "conectado" (si su pareja tiene ese sprite)
+    private void ShowConnected(Button wireButton, int wire)
+    {
+        Sprite connectedSprite = GetConnectedSprite(wire);
+        if (connectedSprite != null)
+        {
+            wireButton.image.sprite = connectedSprite;
+        }
+    }
+
+    private Sprite GetConnectedSprite(int wire)
+    {
+        return connectedSprites != null && wire < connectedSprites.Length ? connectedSprites[wire] : null;
     }
 
     private Color GetLineColor(int wire)
@@ -145,8 +183,20 @@ public class ElectricalMinigame : Minigame
 
         draggedWire = wire;
         draggedLine = Spawn(lineTemplate);
-        draggedLine.color = GetLineColor(wire);
         draggedPulse = MinigameFX.Pulse(leftWires[wire].transform, 1.2f, 0.35f);
+        ShowConnected(leftWires[wire], wire);
+
+        // La línea usa el sprite de "conectado" de su pareja (sin teñir) o, si no tiene, su color
+        Sprite connectedSprite = GetConnectedSprite(wire);
+        if (connectedSprite != null)
+        {
+            draggedLine.sprite = connectedSprite;
+            draggedLine.color = Color.white;
+        }
+        else
+        {
+            draggedLine.color = GetLineColor(wire);
+        }
     }
 
     private void Drop(int slot)
@@ -155,11 +205,12 @@ public class ElectricalMinigame : Minigame
         Image line = draggedLine;
         draggedWire = -1;
         draggedPulse.Kill();
-        leftWires[wire].transform.localScale = Vector3.one;
+        leftWires[wire].transform.localScale = leftScales[wire];
 
-        // Soltado fuera de un cable libre: el cable se recoge
+        // Soltado fuera de un cable libre: el cable se recoge y vuelve a su sprite sin conectar
         if (slot < 0 || rightConnected[slot])
         {
+            leftWires[wire].image.sprite = leftIdleSprites[wire];
             RectTransform rect = line.rectTransform;
             rect.DOSizeDelta(new Vector2(0f, rect.sizeDelta.y), 0.15f).SetLink(line.gameObject)
                 .OnComplete(() => Destroy(line.gameObject));
@@ -177,8 +228,10 @@ public class ElectricalMinigame : Minigame
             return;
         }
 
+        ShowConnected(rightWire, slot);
+        GameAudio.PlaySfx(GameAudio.Sounds.wireConnected);
         MinigameFX.Punch(rightWire.transform);
-        MinigameFX.Burst(Window, GetPosition(rightWire), line.color);
+        MinigameFX.Burst(Window, GetPosition(rightWire), GetLineColor(wire));
         leftConnected[wire] = true;
         rightConnected[slot] = true;
         connectedCount++;

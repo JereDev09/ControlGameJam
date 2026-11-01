@@ -121,6 +121,7 @@ MonoBehaviour:
   tutorialFirstFailureDelay: 10
   tutorialStepDelay: 8
   tutorialBreakStability: 10
+  tutorialDropSpeed: 20
   tutorialExtraFailures: 2
   tutorialEnterMessage: "\xA1Aver\xEDa en {zone}! Pulsa {key} para entrar en la nave
     y repararla"
