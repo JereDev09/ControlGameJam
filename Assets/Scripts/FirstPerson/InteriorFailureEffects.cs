@@ -22,11 +22,17 @@ public class InteriorFailureEffects : MonoBehaviour
     [SerializeField] private float blurStartDistance = 0.5f;
     [SerializeField] private float blurEndDistance = 4f;
 
+    [Header("Electricidad (apagón)")]
+    [Tooltip("Cuánto se oscurece la imagen cuando se van las luces (exposición, en negativo = más oscuro)")]
+    [SerializeField] private float blackoutExposure = -4f;
+
     private Light[] lights;
     private float[] baseIntensities;
     private float baseAmbient;
     private Volume blurVolume;
     private VolumeProfile blurProfile;
+    private Volume blackoutVolume;
+    private VolumeProfile blackoutProfile;
     private Image flash;
     private bool destructionShown;
 
@@ -47,6 +53,7 @@ public class InteriorFailureEffects : MonoBehaviour
 
         baseAmbient = RenderSettings.ambientIntensity;
         CreateBlurVolume();
+        CreateBlackoutVolume();
         CreateFlash();
         FailureDirector.OverloadExploded += OnOverloadExploded;
     }
@@ -59,6 +66,11 @@ public class InteriorFailureEffects : MonoBehaviour
         if (blurProfile != null)
         {
             Destroy(blurProfile);
+        }
+
+        if (blackoutProfile != null)
+        {
+            Destroy(blackoutProfile);
         }
     }
 
@@ -75,11 +87,14 @@ public class InteriorFailureEffects : MonoBehaviour
         }
     }
 
-    // Electricidad: las luces parpadean; cuanto peor, más tiempo están apagadas
+    // Electricidad: las luces parpadean; cuanto peor, más tiempo están apagadas.
+    // Las luces bakeadas no se pueden apagar en el juego (su luz ya está pintada en el lightmap),
+    // así que además se oscurece la imagen entera con el volume del apagón.
     private void UpdateLights(float severity)
     {
         float noise = Mathf.PerlinNoise(Time.time * 7f, 0f);
         float power = severity <= 0f || noise > severity * 0.85f ? 1f : 0.05f;
+        blackoutVolume.weight = 1f - power;
 
         for (int i = 0; i < lights.Length; i++)
         {
@@ -146,6 +161,21 @@ public class InteriorFailureEffects : MonoBehaviour
         blurVolume.priority = 100f;
         blurVolume.weight = 0f;
         blurVolume.sharedProfile = blurProfile;
+    }
+
+    // Volume creado por código que solo baja la exposición (oscurece todo). Su "weight" decide cuánto.
+    private void CreateBlackoutVolume()
+    {
+        blackoutProfile = ScriptableObject.CreateInstance<VolumeProfile>();
+        blackoutProfile.Add<ColorAdjustments>().postExposure.Override(blackoutExposure);
+
+        GameObject volumeObject = new GameObject("Blackout");
+        volumeObject.transform.SetParent(transform, false);
+        blackoutVolume = volumeObject.AddComponent<Volume>();
+        blackoutVolume.isGlobal = true;
+        blackoutVolume.priority = 101f;
+        blackoutVolume.weight = 0f;
+        blackoutVolume.sharedProfile = blackoutProfile;
     }
 
     // Imagen a pantalla completa para los destellos

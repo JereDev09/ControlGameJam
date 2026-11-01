@@ -73,7 +73,7 @@ public class OverloadMinigame : Minigame
             buttons[i].image.color = DimColor(i);
         }
 
-        statusText.text = "Mira la secuencia...";
+        statusText.text = "Mira la secuencia";
         StartCoroutine(PlaySequence());
     }
 

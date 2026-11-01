@@ -15,32 +15,32 @@ MonoBehaviour:
   systems:
   - name: Circuitos
     lossPerSecond: 0.5
-    position: {x: -0.599, y: -0.48931003, z: 6.425}
+    position: {x: -18.79, y: -4.98, z: -16.49}
   - name: Electricidad
     lossPerSecond: 0.5
-    position: {x: -3.26, y: -0.48931003, z: 6.67}
+    position: {x: 13.69, y: -5.3, z: -15.57}
   - name: Motor
     lossPerSecond: 0.5
-    position: {x: -6.1, y: -0.48931003, z: 6.11}
+    position: {x: -22.196, y: -4.9798, z: -19.4754}
   - name: "Navegaci\xF3n"
     lossPerSecond: 0.5
-    position: {x: -8.85, y: -0.48931003, z: 4.27}
+    position: {x: -19.07, y: -5.11, z: -23.25}
   - name: Sobrecarga
     lossPerSecond: 0.5
-    position: {x: -9.96, y: -0.48931003, z: 1.55}
+    position: {x: 1.18, y: -6.09, z: -25.64}
   - name: "Presi\xF3n"
     lossPerSecond: 0.5
-    position: {x: -9.26, y: -0.48931003, z: -1.26}
+    position: {x: 13.56, y: -5.52, z: -23.52}
   - name: Radar
     lossPerSecond: 0.5
-    position: {x: -7.75, y: -0.48931003, z: -3.36}
+    position: {x: -2.68, y: -0.48931003, z: -26.62}
   - name: Piezas
     lossPerSecond: 0.5
-    position: {x: -5.85, y: -0.48931003, z: -5.63}
+    position: {x: 15.91, y: -5.63, z: -19.08}
   autoMapArea: 1
-  mapMin: {x: -14.4295, y: -8.63}
-  mapMax: {x: 3.8704996, y: 9.669999}
-  journeyDistance: 54000
+  mapMin: {x: -25.196, y: -43.148003}
+  mapMax: {x: 18.91, y: 0.9579983}
+  journeyDistance: 27000
   kilometersPerSecond: 120
   firstFailureDelay: 6
   maxFailuresAtOnce:

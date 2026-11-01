@@ -8,7 +8,28 @@ using UnityEngine.UI;
 // Las posiciones son en píxeles desde el centro del padre, sobre una pantalla de 1920x1080.
 public static class MinigameUI
 {
+    // Fuente de todos los textos del juego (está en Assets/Resources/Fuentes).
+    // Para cambiarla, pon otra fuente en esa carpeta y cambia aquí su nombre.
+    private const string FontResource = "Fuentes/aspace_italic_demo";
+
     private static Font font;
+
+    public static Font GameFont
+    {
+        get
+        {
+            if (font == null)
+            {
+                font = Resources.Load<Font>(FontResource);
+                if (font == null)
+                {
+                    font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                }
+            }
+
+            return font;
+        }
+    }
 
     public static Canvas CreateCanvas(string name, Transform parent)
     {
@@ -52,16 +73,11 @@ public static class MinigameUI
 
     public static Text CreateText(string name, Transform parent, string content, int fontSize, Vector2 position, Vector2 size)
     {
-        if (font == null)
-        {
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        }
-
         GameObject textObject = new GameObject(name, typeof(RectTransform), typeof(Text));
         textObject.transform.SetParent(parent, false);
 
         Text text = textObject.GetComponent<Text>();
-        text.font = font;
+        text.font = GameFont;
         text.text = content;
         text.fontSize = fontSize;
         text.color = Color.white;

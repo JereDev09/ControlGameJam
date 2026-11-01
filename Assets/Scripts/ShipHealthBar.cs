@@ -28,7 +28,7 @@ public class ShipHealthBar : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             100f);
 
-        Canvas canvas = MinigameUI.CreateCanvas("ShipHealthCanvas", null);
+        Canvas canvas = MinigameUI.CreateCanvas("ShipHealthCanvas", transform);
         canvas.sortingOrder = 45;
         panel = MinigameUI.CreateGroup("ShipHealthPanel", canvas.transform, Vector2.zero, new Vector2(220f, 205f));
         panel.anchorMin = new Vector2(1f, 0f);

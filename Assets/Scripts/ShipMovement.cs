@@ -2,6 +2,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class ShipMovement : MonoBehaviour
 {
@@ -74,7 +75,10 @@ public class ShipMovement : MonoBehaviour
     {
         initialRotation = transform.rotation;
         ShipState.MaxHealth = maxHealth;
+        // La barra va en la escena de la nave, para que desaparezca con ella al cambiar de escena
+        // (al cargar la escena, la escena "activa" todavía es otra)
         healthBar = new GameObject("ShipHealthBar").AddComponent<ShipHealthBar>();
+        SceneManager.MoveGameObjectToScene(healthBar.gameObject, gameObject.scene);
         healthBar.Initialize(maxHealth);
 
         if (movementCamera == null)
